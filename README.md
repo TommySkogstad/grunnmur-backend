@@ -91,33 +91,46 @@ val logs = auditLog.findAll(action = "DELETE", limit = 50)
 auditLog.cleanupOldLogs(retentionDays = 365)
 ```
 
-## Installasjon
+## Integrasjon
 
+Grunnmur brukes via Gradle composite build (`includeBuild`), ikke mavenLocal.
+
+### settings.gradle.kts (i appen)
 ```kotlin
-// build.gradle.kts
-repositories {
-    mavenLocal()
-}
-dependencies {
-    implementation("no.grunnmur:grunnmur:1.0.0")
+listOf("grunnmur/", "../../grunnmur/", "../grunnmur/").forEach { path ->
+    if (file(path).exists()) {
+        includeBuild(path)
+        return@forEach
+    }
 }
 ```
 
-## Bygg og publiser
+### Docker (docker-compose.yml i appen)
+```yaml
+services:
+  backend:
+    build:
+      context: ./backend
+      additional_contexts:
+        grunnmur: ../grunnmur
+```
+
+## Bygg
 
 ```bash
-./gradlew build                  # Bygg og kjoer tester
-./gradlew publishToMavenLocal    # Publiser til lokal Maven-repo
+./gradlew build    # Bygg og kjoer tester
+./gradlew test     # Kjoer kun tester
 ```
 
 ## Versjoner
 
-- Kotlin 2.1.0, Ktor 3.0.3, Exposed 0.57.0, JVM 21
+- Kotlin 2.3.10, Ktor 3.4.1, Exposed 0.61.0, JVM 21
 - Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
+- Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
 
 ## Brukes av
 
+- [lo-finans](https://github.com/TommySkogstad/lo-finans)
 - [biologportal](https://github.com/TommySkogstad/biologportal)
 - [6810](https://github.com/TommySkogstad/6810)
-- [summa-summarum](https://github.com/TommySkogstad/summa-summarum)
-- lo-finans (ved Ktor 3.0-oppgradering)
+- [summa-summarum](https://github.com/TommySkogstad/Summa-Summarum)

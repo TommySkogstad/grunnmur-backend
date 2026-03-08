@@ -1,11 +1,9 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Eies av utviklingsavdelingen, brukes av lo-finans, biologportal, 6810 og summa-summarum.
+Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 
-## Hva er grunnmur?
-
-Standardiserte patterns som tidligere var copy-pastet med variasjoner mellom apper:
+## Moduler
 
 | Modul | Fil | Beskrivelse |
 |-------|-----|-------------|
@@ -19,36 +17,80 @@ Standardiserte patterns som tidligere var copy-pastet med variasjoner mellom app
 
 ## Teknisk
 
-- **Kotlin**: 2.1.0
-- **Ktor**: 3.0.3 (compileOnly)
-- **Exposed**: 0.57.0 (compileOnly)
+- **Kotlin**: 2.3.10
+- **Ktor**: 3.4.1 (compileOnly)
+- **Exposed**: 0.61.0 (compileOnly)
+- **kotlinx-serialization-json**: 1.10.0 (compileOnly)
 - **JVM**: 21
-- **Publisering**: `./gradlew publishToMavenLocal`
+- **Tester**: JUnit 5.14.3
 
-## Bruk i apper
+## Integrasjon i apper
 
+Grunnmur brukes via Gradle composite build (`includeBuild`), IKKE mavenLocal.
+
+### Lokal utvikling
+
+Appene refererer til grunnmur via `settings.gradle.kts`:
 ```kotlin
-// build.gradle.kts
-repositories {
-    mavenLocal()
+// settings.gradle.kts (i appen)
+listOf("grunnmur/", "../../grunnmur/", "../grunnmur/").forEach { path ->
+    if (file(path).exists()) {
+        includeBuild(path)
+        return@forEach
+    }
 }
-dependencies {
-    implementation("no.grunnmur:grunnmur:1.0.0")
-}
+```
+
+Fallback-stier:
+1. `grunnmur/` — Docker (COPY --from=grunnmur)
+2. `../../grunnmur/` — Lokal utvikling (sibling-dirs)
+3. `../grunnmur/` — CI (actions/checkout path)
+
+### Docker
+
+Appenes `docker-compose.yml` bruker `additional_contexts`:
+```yaml
+services:
+  backend:
+    build:
+      context: ./backend
+      additional_contexts:
+        grunnmur: ../grunnmur
+```
+
+Appenes `Dockerfile` kopierer grunnmur inn:
+```dockerfile
+COPY --from=grunnmur . /app/grunnmur
+```
+
+### CI (GitHub Actions)
+
+Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
+```yaml
+- uses: actions/checkout@v4
+  with:
+    repository: TommySkogstad/grunnmur
+    token: ${{ secrets.GRUNNMUR_TOKEN }}
+    path: grunnmur
 ```
 
 ## Konvensjoner
 
 - Ktor og Exposed er `compileOnly` — apper har sine egne versjoner
+- Versjoner i grunnmur MÅ matche appene (Kotlin metadata og Exposed er binar-inkompatible)
 - AuditLogService bruker strenger for action/entityType — apper definerer egne enums
-- Feilmeldinger paa norsk
+- Feilmeldinger pa norsk
 - Alle tider via `TimeUtils.nowOslo()`
-- Tester kjoeres med `./gradlew test`
 
 ## Utvikling
 
 ```bash
-./gradlew build          # Bygg
-./gradlew test           # Kjoer tester
-./gradlew publishToMavenLocal  # Publiser lokalt
+./gradlew build    # Bygg og kjoer tester
+./gradlew test     # Kjoer tester
 ```
+
+## Viktig
+
+- Ved Dependabot-oppgraderinger: oppgrader grunnmur FORST, deretter alle 4 apper til samme versjoner
+- Kotlin metadata 2.3 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
+- Exposed-versjoner ma vaere identiske mellom grunnmur og apper
