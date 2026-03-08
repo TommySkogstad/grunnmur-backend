@@ -28,7 +28,7 @@ dependencies {
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // Logging
-    compileOnly("org.slf4j:slf4j-api:2.0.16")
+    compileOnly("org.slf4j:slf4j-api:2.0.17")
 
     // Test
     testImplementation(kotlin("test"))
