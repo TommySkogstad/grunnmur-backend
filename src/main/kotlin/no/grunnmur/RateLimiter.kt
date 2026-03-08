@@ -76,6 +76,13 @@ class RateLimiter(
     }
 
     /**
+     * Nullstiller alle tellere. Kun for testing.
+     */
+    fun clear() {
+        attempts.clear()
+    }
+
+    /**
      * Returnerer antall aktive entries (for monitorering).
      */
     fun size(): Int = attempts.size
