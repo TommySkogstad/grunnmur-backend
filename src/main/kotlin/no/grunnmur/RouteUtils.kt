@@ -1,6 +1,7 @@
 package no.grunnmur
 
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 
 /**
  * Henter en heltallsparameter fra URL-path, eller kaster BadRequestException.
@@ -43,4 +44,20 @@ fun ApplicationCall.checkRateLimit(
     if (!allowed) {
         throw RateLimitException(message)
     }
+}
+
+/**
+ * Henter klientens IP-adresse fra proxy-headere.
+ *
+ * Sjekker i rekkefoelge:
+ * 1. CF-Connecting-IP (Cloudflare)
+ * 2. X-Real-IP (Nginx)
+ * 3. X-Forwarded-For (standard proxy-header, foerste IP)
+ * 4. remoteAddress (direkte tilkobling / fallback)
+ */
+fun ApplicationCall.getClientIp(): String {
+    return request.header("CF-Connecting-IP")
+        ?: request.header("X-Real-IP")
+        ?: request.header("X-Forwarded-For")?.split(",")?.firstOrNull()?.trim()
+        ?: request.local.remoteAddress
 }
