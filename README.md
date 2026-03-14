@@ -1,6 +1,10 @@
-# grunnmur
+<p align="center">
+  <img src="logo.svg" alt="grunnmur" width="80" height="80">
+</p>
 
-Felles Kotlin-bibliotek for Ktor-appene i portefoljen. Standardiserer patterns som tidligere var duplisert med variasjoner mellom apper.
+<h1 align="center">grunnmur</h1>
+
+<p align="center">Felles Kotlin-bibliotek for Ktor-appene i portefoljen.<br>Standardiserer patterns som tidligere var duplisert med variasjoner mellom apper.</p>
 
 ## Innhold
 
