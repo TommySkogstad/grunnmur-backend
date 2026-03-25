@@ -95,6 +95,35 @@ val logs = auditLog.findAll(action = "DELETE", limit = 50)
 auditLog.cleanupOldLogs(retentionDays = 365)
 ```
 
+### Validators (`no.grunnmur`)
+Validering av vanlige inputtyper med XSS-beskyttelse:
+
+```kotlin
+Validators.email("bruker@eksempel.no")      // true/false
+Validators.phone("+4712345678")             // true/false
+Validators.url("https://eksempel.no")       // true/false
+Validators.name("Ola Nordmann")             // true/false
+Validators.text("Fritekst her", maxLength = 500)
+Validators.search("sokeord")
+Validators.orgNumber("123456789")           // Norsk org.nr
+Validators.password("Sikkert passord")
+```
+
+### EncryptionUtils (`no.grunnmur`)
+AES-256-GCM-kryptering med hex-nokler:
+
+```kotlin
+val encrypted = EncryptionUtils.encrypt(plaintext, hexKey)
+val decrypted = EncryptionUtils.decrypt(encrypted, hexKey)
+```
+
+### RouteUtils.getClientIp (`no.grunnmur`)
+Hent klientens IP med proxy-stotte:
+
+```kotlin
+val clientIp = call.getClientIp()  // Sjekker CF-Connecting-IP, X-Forwarded-For, fallback
+```
+
 ## Integrasjon
 
 Grunnmur brukes via Gradle composite build (`includeBuild`), ikke mavenLocal.
@@ -128,7 +157,7 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.3.10, Ktor 3.4.1, Exposed 0.61.0, JVM 21
+- Kotlin 2.3.20, Ktor 3.4.1, Exposed 0.61.0, JVM 21
 - Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
 

@@ -14,10 +14,13 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 | RateLimiter | `RateLimiter.kt` | In-memory sliding window med cleanup og maxEntries |
 | TimeUtils | `TimeUtils.kt` | `nowOslo()`, `formatDateTime()`, `formatDateTimeIso()` |
 | AuditLog | `AuditLogTable.kt` + `AuditLogService.kt` | Database-basert revisjonslogging med filtrering |
+| Validators | `Validators.kt` | E-post, telefon, URL, navn, tekst, sok, org.nr, passord-validering + XSS-beskyttelse |
+| EncryptionUtils | `EncryptionUtils.kt` | AES-256-GCM-kryptering med hex-nokler |
+| RouteUtils.getClientIp | `RouteUtils.kt` | Proxy-stotte (Cloudflare/nginx/X-Forwarded-For) |
 
 ## Teknisk
 
-- **Kotlin**: 2.3.10
+- **Kotlin**: 2.3.20
 - **Ktor**: 3.4.1 (compileOnly)
 - **Exposed**: 0.61.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.10.0 (compileOnly)
