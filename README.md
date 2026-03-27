@@ -124,6 +124,59 @@ Hent klientens IP med proxy-stotte:
 val clientIp = call.getClientIp()  // Sjekker CF-Connecting-IP, X-Forwarded-For, fallback
 ```
 
+### InputSanitizer (`no.grunnmur`)
+Sanitering av brukerinput for GitHub Issues — fjerner markdown/HTML, maskerer hemmeligheter, beskytter mentions:
+
+```kotlin
+val sanitized = InputSanitizer.sanitizeDescription(userInput)
+val safeTitle = InputSanitizer.sanitizeTitle(title)
+val safeLogs = InputSanitizer.sanitizeLogs(logOutput)
+```
+
+### GitHubIssueService (`no.grunnmur`)
+Oppretter GitHub Issues via API med automatisk sanitering:
+
+```kotlin
+val service = GitHubIssueService(GitHubIssueService.Config(
+    token = "ghp_...",
+    repo = "owner/repo"
+))
+
+val result = service.createIssue(
+    title = "Feilrapport",
+    description = "Beskrivelse av problemet",
+    labels = listOf("bug")
+)
+```
+
+### ImageUploadService (`no.grunnmur`)
+Sikker bildeopplasting med magic byte-validering og stoerrelsesbegrensning:
+
+```kotlin
+val imageService = ImageUploadService(ImageUploadService.Config(
+    uploadDir = "/uploads/issues",
+    baseUrl = "https://example.com/uploads/issues",
+    maxFileSize = 2 * 1024 * 1024,
+    maxImagesPerIssue = 3
+))
+
+val url = imageService.uploadImage(issueNumber = 1, data = bytes, originalFilename = "bilde.png")
+```
+
+### GitHubIssueRoutes (`no.grunnmur`)
+Ktor-ruter for issue-oppretting og GitHub webhook-mottak:
+
+```kotlin
+routing {
+    githubIssueRoutes(GitHubIssueRoutesConfig(
+        issueService = issueService,
+        imageService = imageService,
+        rateLimiter = RateLimiter(maxAttempts = 10, windowMs = 60_000),
+        webhookSecret = "webhook-secret"
+    ))
+}
+```
+
 ## Integrasjon
 
 Grunnmur brukes via Gradle composite build (`includeBuild`), ikke mavenLocal.
@@ -157,7 +210,8 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.3.20, Ktor 3.4.1, Exposed 0.61.0, JVM 21
+- Kotlin 2.3.20, Ktor 3.4.1 (Server + Client CIO), Exposed 0.61.0, JVM 21
+- SLF4J 2.0.17 (compileOnly)
 - Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
 
