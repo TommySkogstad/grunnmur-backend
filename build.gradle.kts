@@ -15,9 +15,15 @@ val ktorVersion = "3.4.1"
 val exposedVersion = "0.61.0"
 
 dependencies {
-    // Ktor (compileOnly — apper har sin egen versjon)
+    // Ktor server (compileOnly — apper har sin egen versjon)
     compileOnly("io.ktor:ktor-server-core:$ktorVersion")
     compileOnly("io.ktor:ktor-server-status-pages:$ktorVersion")
+
+    // Ktor client (compileOnly — for GitHubIssueService)
+    compileOnly("io.ktor:ktor-client-core:$ktorVersion")
+    compileOnly("io.ktor:ktor-client-cio:$ktorVersion")
+    compileOnly("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    compileOnly("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
     // Exposed (compileOnly — apper har sin egen versjon)
     compileOnly("org.jetbrains.exposed:exposed-core:$exposedVersion")
@@ -33,6 +39,11 @@ dependencies {
     // Test
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.14.3")
+    testImplementation("io.ktor:ktor-client-core:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-cio:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 }
 
 java {
