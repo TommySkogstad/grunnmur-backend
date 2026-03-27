@@ -97,3 +97,4 @@ Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 - Ved Dependabot-oppgraderinger: oppgrader grunnmur FORST, deretter alle 4 apper til samme versjoner
 - Kotlin metadata 2.3 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
 - Exposed-versjoner ma vaere identiske mellom grunnmur og apper
+- **Kryssrepo-avhengigheter**: Grunnmur er et delt bibliotek. Naar ny funksjonalitet legges til, opprett GitHub issue paa grunnmur FORST, deretter issues paa alle apper som skal bruke den nye modulen med `Blokkert av: TommySkogstad/grunnmur#nummer` i issue-bodyen. Issue-triage haandterer avhengighetsrekkefoelgen automatisk — blokkerte issues venter til grunnmur-issuen er lukket.
