@@ -10,11 +10,14 @@ object InputSanitizer {
     const val MAX_LOGS_LENGTH = 10000
     const val MAX_TITLE_LENGTH = 256
 
-    // Markdown-lenker: [tekst](url)
-    private val MARKDOWN_LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]+\)""")
+    // Markdown-lenker: [tekst](url) — haandterer parenteser i URL
+    private val MARKDOWN_LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]*(?:\([^)]*\)[^)]*)*\)""")
 
-    // Markdown-bilder: ![alt](url)
-    private val MARKDOWN_IMAGE_REGEX = Regex("""!\[[^\]]*\]\([^)]+\)""")
+    // Markdown-bilder: ![alt](url) — haandterer parenteser i URL
+    private val MARKDOWN_IMAGE_REGEX = Regex("""!\[[^\]]*\]\([^)]*(?:\([^)]*\)[^)]*)*\)""")
+
+    // Script-blokker med innhold
+    private val SCRIPT_BLOCK_REGEX = Regex("""<script[^>]*>.*?</script>""", RegexOption.IGNORE_CASE)
 
     // HTML-tags (inkludert self-closing)
     private val HTML_TAG_REGEX = Regex("""<[^>]+>""")
@@ -46,6 +49,7 @@ object InputSanitizer {
         return text
             .replace(MARKDOWN_IMAGE_REGEX, "")
             .replace(MARKDOWN_LINK_REGEX) { it.groupValues[1] }
+            .replace(SCRIPT_BLOCK_REGEX, "")
             .replace(HTML_TAG_REGEX, "")
     }
 
