@@ -6,7 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.io.readByteArray
+import io.ktor.utils.io.toByteArray
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.security.MessageDigest
@@ -105,7 +105,7 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
                 }
                 is PartData.FileItem -> {
                     if (part.name == "images") {
-                        val bytes = part.provider().readByteArray()
+                        val bytes = part.provider().toByteArray()
                         val filename = part.originalFileName ?: "image"
                         imageData.add(bytes to filename)
                     }
