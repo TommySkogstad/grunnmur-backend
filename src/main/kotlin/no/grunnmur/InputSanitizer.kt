@@ -11,10 +11,10 @@ object InputSanitizer {
     const val MAX_TITLE_LENGTH = 256
 
     // Markdown-lenker: [tekst](url) — haandterer parenteser i URL
-    private val MARKDOWN_LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]*(?:\([^)]*\)[^)]*)*\)""")
+    private val MARKDOWN_LINK_REGEX = Regex("""\[([^\]]*)\]\([^()]*(?:\([^()]*\)[^()]*)*\)""")
 
     // Markdown-bilder: ![alt](url) — haandterer parenteser i URL
-    private val MARKDOWN_IMAGE_REGEX = Regex("""!\[[^\]]*\]\([^)]*(?:\([^)]*\)[^)]*)*\)""")
+    private val MARKDOWN_IMAGE_REGEX = Regex("""!\[[^\]]*\]\([^()]*(?:\([^()]*\)[^()]*)*\)""")
 
     // Script-blokker med innhold
     private val SCRIPT_BLOCK_REGEX = Regex("""<script[^>]*>.*?</script>""", RegexOption.IGNORE_CASE)
