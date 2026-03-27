@@ -105,7 +105,7 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
                 }
                 is PartData.FileItem -> {
                     if (part.name == "images") {
-                        val bytes = part.provider().readBytes()
+                        val bytes = part.provider().readByteArray()
                         val filename = part.originalFileName ?: "image"
                         imageData.add(bytes to filename)
                     }
