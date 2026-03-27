@@ -3,8 +3,18 @@ name: Tester
 on:
   push:
     branches: [main, 'auto/**']
+    paths-ignore:
+      - '**.md'
+      - 'CLAUDE.md'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'CLAUDE.md'
+      - 'LICENSE'
+      - '.gitignore'
 
 permissions:
   contents: read
