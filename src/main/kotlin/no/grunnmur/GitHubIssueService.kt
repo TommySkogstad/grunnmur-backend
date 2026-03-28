@@ -126,4 +126,23 @@ class GitHubIssueService(private val config: Config) {
 
         return json.decodeFromString<GitHubIssueResponse>(response.bodyAsText())
     }
+
+    /**
+     * Oppdaterer body paa en eksisterende GitHub Issue via PATCH API.
+     * Brukes for aa legge til vedleggsseksjon etter bildeopplasting.
+     */
+    suspend fun updateIssueBody(issueNumber: Int, body: String) {
+        val response = client.patch("https://api.github.com/repos/${config.repo}/issues/$issueNumber") {
+            header("Authorization", "Bearer ${config.token}")
+            header("Accept", "application/vnd.github+json")
+            header("X-GitHub-Api-Version", "2022-11-28")
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("body" to body))
+        }
+
+        if (!response.status.isSuccess()) {
+            val errorBody = response.bodyAsText()
+            throw RuntimeException("Kunne ikke oppdatere GitHub Issue #$issueNumber: ${response.status} — $errorBody")
+        }
+    }
 }
