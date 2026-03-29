@@ -36,6 +36,10 @@ class GitHubIssueService(private val config: Config) {
         val html_url: String
     )
 
+    companion object {
+        private const val GITHUB_API_VERSION = "2022-11-28"
+    }
+
     private val json = Json { ignoreUnknownKeys = true }
 
     private val client by lazy {
@@ -114,7 +118,7 @@ class GitHubIssueService(private val config: Config) {
         val response = client.post("https://api.github.com/repos/${config.repo}/issues") {
             header("Authorization", "Bearer ${config.token}")
             header("Accept", "application/vnd.github+json")
-            header("X-GitHub-Api-Version", "2022-11-28")
+            header("X-GitHub-Api-Version", GITHUB_API_VERSION)
             contentType(ContentType.Application.Json)
             setBody(request)
         }
@@ -135,7 +139,7 @@ class GitHubIssueService(private val config: Config) {
         val response = client.patch("https://api.github.com/repos/${config.repo}/issues/$issueNumber") {
             header("Authorization", "Bearer ${config.token}")
             header("Accept", "application/vnd.github+json")
-            header("X-GitHub-Api-Version", "2022-11-28")
+            header("X-GitHub-Api-Version", GITHUB_API_VERSION)
             contentType(ContentType.Application.Json)
             setBody(mapOf("body" to body))
         }

@@ -44,6 +44,10 @@ dependencies {
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    testImplementation("io.ktor:ktor-server-core:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
 }
 
 java {
