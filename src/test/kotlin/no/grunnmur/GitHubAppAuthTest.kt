@@ -6,6 +6,7 @@ import java.util.Base64
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 
 class GitHubAppAuthTest {
@@ -94,10 +95,9 @@ class GitHubAppAuthTest {
     inner class ConfigValidering {
 
         @Test
-        fun `Config krever enten token eller appAuth`() {
-            assertFailsWith<IllegalArgumentException> {
-                GitHubIssueService.Config(repo = "test/repo")
-            }
+        fun `Config uten auth rapporterer hasAuth false`() {
+            val config = GitHubIssueService.Config(repo = "test/repo")
+            assertFalse(config.hasAuth(), "Config uten token og appAuth skal returnere hasAuth()=false")
         }
 
         @Test

@@ -27,11 +27,7 @@ class GitHubIssueService(private val config: Config) {
         val uploadDir: String? = null,
         val publicBaseUrl: String? = null
     ) {
-        init {
-            require(token != null || appAuth != null) {
-                "Enten token eller appAuth maa vaere satt"
-            }
-        }
+        fun hasAuth(): Boolean = !token.isNullOrBlank() || appAuth != null
     }
 
     @Serializable
@@ -54,7 +50,9 @@ class GitHubIssueService(private val config: Config) {
     private val json = Json { ignoreUnknownKeys = true }
 
     private suspend fun getAuthToken(): String {
-        return config.appAuth?.getToken() ?: config.token!!
+        return config.appAuth?.getToken()
+            ?: config.token?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("GitHubIssueService: Verken appAuth eller token er konfigurert")
     }
 
     private val client by lazy {
