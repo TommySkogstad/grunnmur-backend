@@ -119,19 +119,26 @@ class AuditLogService {
         action?.let { query.andWhere { AuditLogs.action eq it } }
         entityType?.let { query.andWhere { AuditLogs.entityType eq it } }
         userId?.let { query.andWhere { AuditLogs.userId eq it } }
-        startDate?.let {
-            try {
-                val start = java.time.LocalDate.parse(it)
-                val startDateTime = java.time.LocalDateTime.of(start, java.time.LocalTime.MIN)
+        startDate?.let { dateStr ->
+            parseLocalDate(dateStr)?.let { date ->
+                val startDateTime = java.time.LocalDateTime.of(date, java.time.LocalTime.MIN)
                 query.andWhere { AuditLogs.createdAt greaterEq startDateTime }
-            } catch (_: Exception) { }
+            }
         }
-        endDate?.let {
-            try {
-                val end = java.time.LocalDate.parse(it)
-                val endDateTime = java.time.LocalDateTime.of(end, java.time.LocalTime.MAX)
+        endDate?.let { dateStr ->
+            parseLocalDate(dateStr)?.let { date ->
+                val endDateTime = java.time.LocalDateTime.of(date, java.time.LocalTime.MAX)
                 query.andWhere { AuditLogs.createdAt lessEq endDateTime }
-            } catch (_: Exception) { }
+            }
+        }
+    }
+
+    private fun parseLocalDate(dateStr: String): java.time.LocalDate? {
+        return try {
+            java.time.LocalDate.parse(dateStr)
+        } catch (e: Exception) {
+            log.warn("Ugyldig datoformat: '$dateStr' — ${e.message}")
+            null
         }
     }
 

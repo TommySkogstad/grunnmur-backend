@@ -4,6 +4,7 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import java.security.MessageDigest
 
 /**
  * CSRF-beskyttelse plugin for Ktor.
@@ -43,7 +44,7 @@ val GrunnmurCsrf = createApplicationPlugin(name = "GrunnmurCsrf", createConfigur
             return@onCall
         }
 
-        if (csrfCookie != csrfHeader) {
+        if (!MessageDigest.isEqual(csrfCookie.toByteArray(), csrfHeader.toByteArray())) {
             call.application.log.warn("CSRF-validering feilet: Token mismatch. Path: $path")
             call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Ugyldig CSRF-token"))
             return@onCall
