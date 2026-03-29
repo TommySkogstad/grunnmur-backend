@@ -13,15 +13,26 @@ import kotlinx.serialization.json.Json
 /**
  * Service for aa opprette GitHub Issues via API.
  * All input saniteres via [InputSanitizer].
+ *
+ * Stoetter to autentiseringsmetoder:
+ * - **PAT**: Personlig access token (Config med token)
+ * - **GitHub App**: Installation token via JWT (Config med appAuth)
  */
 class GitHubIssueService(private val config: Config) {
 
     data class Config(
-        val token: String,
+        val token: String? = null,
+        val appAuth: GitHubAppAuth? = null,
         val repo: String,
         val uploadDir: String? = null,
         val publicBaseUrl: String? = null
-    )
+    ) {
+        init {
+            require(token != null || appAuth != null) {
+                "Enten token eller appAuth maa vaere satt"
+            }
+        }
+    }
 
     @Serializable
     data class CreateIssueRequest(
@@ -41,6 +52,10 @@ class GitHubIssueService(private val config: Config) {
     }
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    private suspend fun getAuthToken(): String {
+        return config.appAuth?.getToken() ?: config.token!!
+    }
 
     private val client by lazy {
         HttpClient(CIO) {
@@ -115,8 +130,9 @@ class GitHubIssueService(private val config: Config) {
             labels = labels
         )
 
+        val authToken = getAuthToken()
         val response = client.post("https://api.github.com/repos/${config.repo}/issues") {
-            header("Authorization", "Bearer ${config.token}")
+            header("Authorization", "Bearer $authToken")
             header("Accept", "application/vnd.github+json")
             header("X-GitHub-Api-Version", GITHUB_API_VERSION)
             contentType(ContentType.Application.Json)
@@ -136,8 +152,9 @@ class GitHubIssueService(private val config: Config) {
      * Brukes for aa legge til vedleggsseksjon etter bildeopplasting.
      */
     suspend fun updateIssueBody(issueNumber: Int, body: String) {
+        val authToken = getAuthToken()
         val response = client.patch("https://api.github.com/repos/${config.repo}/issues/$issueNumber") {
-            header("Authorization", "Bearer ${config.token}")
+            header("Authorization", "Bearer $authToken")
             header("Accept", "application/vnd.github+json")
             header("X-GitHub-Api-Version", GITHUB_API_VERSION)
             contentType(ContentType.Application.Json)
