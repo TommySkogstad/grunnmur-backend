@@ -141,12 +141,15 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
 
         // Oppdater issue-body med bilde-lenker etter opplasting
         if (imageUrls.isNotEmpty()) {
-            val filenames = imageUrls.map { it.substringAfterLast("/") }
             val updatedBody = config.issueService.buildBody(
                 senderName, senderEmail, description, consoleLogs,
-                imageFilenames = filenames
+                imageFilenames = imageUrls
             )
-            config.issueService.updateIssueBody(issueResponse.number, updatedBody)
+            try {
+                config.issueService.updateIssueBody(issueResponse.number, updatedBody)
+            } catch (e: Exception) {
+                call.application.log.error("Kunne ikke oppdatere issue-body med bildlenker: ${e.message}")
+            }
         }
 
         call.respond(HttpStatusCode.Created, CreateIssueResponse(

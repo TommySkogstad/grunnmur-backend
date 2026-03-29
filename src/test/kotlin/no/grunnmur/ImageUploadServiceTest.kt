@@ -19,12 +19,14 @@ class ImageUploadServiceTest {
     private fun createService(
         maxFileSize: Long = 2 * 1024 * 1024,
         maxImagesPerIssue: Int = 3,
-        baseUrl: String = "https://example.com/uploads/issues"
+        baseUrl: String = "https://example.com/uploads/issues",
+        repo: String = "TestOrg/test-repo"
     ): ImageUploadService {
         return ImageUploadService(
             ImageUploadService.Config(
                 uploadDir = tempDir.toString(),
                 baseUrl = baseUrl,
+                repo = repo,
                 maxFileSize = maxFileSize,
                 maxImagesPerIssue = maxImagesPerIssue
             )
@@ -168,7 +170,7 @@ class ImageUploadServiceTest {
             val result = service.uploadImage(1, pngBytes(), "../../../etc/passwd.png")
             assertTrue(result.isSuccess)
             // Filen skal ligge i riktig mappe, ikke utenfor
-            val issueDir = tempDir.resolve("1")
+            val issueDir = tempDir.resolve("test-repo/1")
             assertTrue(issueDir.exists())
             val files = issueDir.listDirectoryEntries()
             assertEquals(1, files.size)
@@ -197,7 +199,7 @@ class ImageUploadServiceTest {
         fun `returnerer korrekt offentlig URL`() {
             val service = createService(baseUrl = "https://example.com/uploads/issues")
             val url = service.uploadImage(1, pngBytes(), "test.png").getOrThrow()
-            assertTrue(url.startsWith("https://example.com/uploads/issues/1/"))
+            assertTrue(url.startsWith("https://example.com/uploads/issues/test-repo/1/"))
             assertTrue(url.endsWith(".png"))
         }
     }
@@ -210,7 +212,7 @@ class ImageUploadServiceTest {
             val service = createService()
             service.uploadImage(1, pngBytes(), "a.png")
             service.uploadImage(1, jpegBytes(), "b.jpg")
-            val issueDir = tempDir.resolve("1")
+            val issueDir = tempDir.resolve("test-repo/1")
             assertTrue(issueDir.exists())
 
             service.deleteIssueImages(1)
@@ -238,9 +240,9 @@ class ImageUploadServiceTest {
             // Issue 1 og 3 er åpne, issue 2 er lukket
             service.cleanupClosedIssues(openIssueNumbers = setOf(1, 3))
 
-            assertTrue(tempDir.resolve("1").exists())
-            assertFalse(tempDir.resolve("2").exists())
-            assertTrue(tempDir.resolve("3").exists())
+            assertTrue(tempDir.resolve("test-repo/1").exists())
+            assertFalse(tempDir.resolve("test-repo/2").exists())
+            assertTrue(tempDir.resolve("test-repo/3").exists())
         }
 
         @Test

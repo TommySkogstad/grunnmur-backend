@@ -86,16 +86,19 @@ class GitHubIssueServiceTest {
     }
 
     @Test
-    fun `buildBody inkluderer bilde-lenker`() {
+    fun `buildBody inkluderer bilde-lenker fra fulle URLer`() {
         val body = service.buildBody(
             senderName = "Ola",
             senderEmail = "ola@example.com",
             description = "Se vedlegg",
-            imageFilenames = listOf("screenshot1.png", "screenshot2.jpg")
+            imageFilenames = listOf(
+                "https://example.com/uploads/issues/test-repo/1/screenshot1.png",
+                "https://example.com/uploads/issues/test-repo/1/screenshot2.jpg"
+            )
         )
 
-        assertContains(body, "![screenshot1.png](https://example.com/uploads/screenshot1.png)")
-        assertContains(body, "![screenshot2.jpg](https://example.com/uploads/screenshot2.jpg)")
+        assertContains(body, "![screenshot1.png](https://example.com/uploads/issues/test-repo/1/screenshot1.png)")
+        assertContains(body, "![screenshot2.jpg](https://example.com/uploads/issues/test-repo/1/screenshot2.jpg)")
         assertContains(body, "Vedlegg")
     }
 
@@ -173,24 +176,21 @@ class GitHubIssueServiceTest {
     }
 
     @Test
-    fun `buildBody med filnavn fra opplastings-URLer gir riktig vedleggsseksjon`() {
-        // Simulerer flyten i ruten: bilde-URLer returneres fra ImageUploadService,
-        // filnavn ekstraheres, og buildBody kalles med disse for aa oppdatere issue.
+    fun `buildBody med fulle URLer fra ImageUploadService`() {
         val imageUrls = listOf(
-            "https://example.com/uploads/42/abc-123.png",
-            "https://example.com/uploads/42/def-456.jpg"
+            "https://example.com/uploads/issues/biologportal/42/abc-123.png",
+            "https://example.com/uploads/issues/biologportal/42/def-456.jpg"
         )
-        val filenames = imageUrls.map { it.substringAfterLast("/") }
 
         val updatedBody = service.buildBody(
             senderName = "Ola",
             senderEmail = "ola@example.com",
             description = "Se vedlegg",
-            imageFilenames = filenames
+            imageFilenames = imageUrls
         )
 
         assertContains(updatedBody, "### Vedlegg")
-        assertContains(updatedBody, "![abc-123.png](https://example.com/uploads/abc-123.png)")
-        assertContains(updatedBody, "![def-456.jpg](https://example.com/uploads/def-456.jpg)")
+        assertContains(updatedBody, "![abc-123.png](https://example.com/uploads/issues/biologportal/42/abc-123.png)")
+        assertContains(updatedBody, "![def-456.jpg](https://example.com/uploads/issues/biologportal/42/def-456.jpg)")
     }
 }

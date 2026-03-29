@@ -94,14 +94,19 @@ class GitHubIssueService(private val config: Config) {
             appendLine("</details>")
         }
 
-        if (!imageFilenames.isNullOrEmpty() && config.publicBaseUrl != null) {
-            val dir = config.uploadDir?.let { "$it/" } ?: ""
-            val baseUrl = config.publicBaseUrl.trimEnd('/')
+        if (!imageFilenames.isNullOrEmpty()) {
             appendLine()
             appendLine("### Vedlegg")
             for (filename in imageFilenames) {
                 val safeFilename = InputSanitizer.sanitize(filename, InputSanitizer.MAX_TITLE_LENGTH)
-                appendLine("![${safeFilename}](${baseUrl}/${dir}${safeFilename})")
+                // Hvis filnavnet er en full URL, bruk den direkte
+                if (safeFilename.startsWith("http")) {
+                    val displayName = safeFilename.substringAfterLast("/")
+                    appendLine("![${displayName}](${safeFilename})")
+                } else if (config.publicBaseUrl != null) {
+                    val baseUrl = config.publicBaseUrl.trimEnd('/')
+                    appendLine("![${safeFilename}](${baseUrl}/${safeFilename})")
+                }
             }
         }
     }.trimEnd()

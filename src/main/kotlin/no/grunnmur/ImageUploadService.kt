@@ -23,9 +23,13 @@ class ImageUploadService(private val config: Config) {
     data class Config(
         val uploadDir: String,
         val baseUrl: String,
+        val repo: String = "",
         val maxFileSize: Long = 2 * 1024 * 1024,
         val maxImagesPerIssue: Int = 3
-    )
+    ) {
+        /** Repo-slug for filsti (f.eks. "TommySkogstad/biologportal" -> "biologportal") */
+        val repoSlug: String get() = repo.substringAfter("/").ifBlank { "default" }
+    }
 
     private enum class ImageType(val extension: String) {
         PNG("png"),
@@ -46,7 +50,7 @@ class ImageUploadService(private val config: Config) {
         val imageType = detectImageType(data)
             ?: return Result.failure(IllegalArgumentException("Ugyldig filtype: kun PNG, JPG og WEBP er tillatt"))
 
-        val issueDir = Path.of(config.uploadDir, issueNumber.toString())
+        val issueDir = Path.of(config.uploadDir, config.repoSlug, issueNumber.toString())
         if (issueDir.exists()) {
             val existingCount = issueDir.listDirectoryEntries().size
             if (existingCount >= config.maxImagesPerIssue) {
@@ -61,13 +65,13 @@ class ImageUploadService(private val config: Config) {
         targetPath.writeBytes(data)
 
         val baseUrl = config.baseUrl.trimEnd('/')
-        val url = "$baseUrl/$issueNumber/$filename"
+        val url = "$baseUrl/${config.repoSlug}/$issueNumber/$filename"
         return Result.success(url)
     }
 
     /** Sletter alle bilder for en gitt issue. */
     fun deleteIssueImages(issueNumber: Int) {
-        val issueDir = Path.of(config.uploadDir, issueNumber.toString())
+        val issueDir = Path.of(config.uploadDir, config.repoSlug, issueNumber.toString())
         if (issueDir.exists()) {
             issueDir.toFile().deleteRecursively()
         }
@@ -75,10 +79,10 @@ class ImageUploadService(private val config: Config) {
 
     /** Sletter bilder for issues som ikke lenger er åpne. */
     fun cleanupClosedIssues(openIssueNumbers: Set<Int>) {
-        val uploadPath = Path.of(config.uploadDir)
-        if (!uploadPath.exists()) return
+        val repoPath = Path.of(config.uploadDir, config.repoSlug)
+        if (!repoPath.exists()) return
 
-        uploadPath.listDirectoryEntries().forEach { dir ->
+        repoPath.listDirectoryEntries().forEach { dir ->
             if (dir.isDirectory()) {
                 val issueNumber = dir.name.toIntOrNull()
                 if (issueNumber != null && issueNumber !in openIssueNumbers) {
