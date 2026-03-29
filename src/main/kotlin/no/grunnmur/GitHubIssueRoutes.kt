@@ -120,15 +120,13 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
         if (senderEmail.isBlank()) throw BadRequestException("Avsender-epost er paakrevd")
         if (description.isBlank()) throw BadRequestException("Beskrivelse er paakrevd")
 
-        // Opprett issue — legg alltid til "brukerrapportert" label slik at
-        // issue-triage ikke auto-fikser brukerrapporterte feil
         val issueResponse = config.issueService.createIssue(
             title = title,
             senderName = senderName,
             senderEmail = senderEmail,
             description = description,
             consoleLogs = consoleLogs,
-            labels = (labels + "brukerrapportert").distinct()
+            labels = labels
         )
 
         // Last opp bilder til issue-nummeret
