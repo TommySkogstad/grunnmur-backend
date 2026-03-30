@@ -74,6 +74,21 @@ COPY --from=grunnmur . /app/grunnmur
 
 ### CI (GitHub Actions)
 
+To-nivå CI-pipeline (kun backend, ingen frontend):
+
+**Hurtigsjekk** (`test.yml`) — kjøres ved push til `main` og `auto/**`:
+- `compileKotlin` + `compileTestKotlin` (verifiserer at koden kompilerer)
+- Kjøretid: ~1 minutt
+
+**Fullstendig testsuite** (`test-full.yml`) — kjøres ved PR mot `main` og manuelt (`workflow_dispatch`):
+- Alle JUnit 5-tester
+- Dependabot-PRer utløser kun hurtigsjekk, ikke full suite
+- Kjøretid: ~2-3 minutter
+
+**Nattlig** — ci-fix-daily (kl 04:30) kjører full testsuite og fikser eventuelle feil.
+
+Begge workflows har `concurrency: cancel-in-progress` for å avbryte utdaterte kjøringer.
+
 Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 ```yaml
 - uses: actions/checkout@v4
