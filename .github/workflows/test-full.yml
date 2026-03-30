@@ -1,8 +1,8 @@
-name: Hurtigsjekk
+name: Fullstendig testsuite
 
 on:
-  push:
-    branches: [main, 'auto/**']
+  pull_request:
+    branches: [main]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -11,17 +11,20 @@ on:
       - '.env*'
       - 'LICENSE'
       - '.gitignore'
+  workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: test-full-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   backend:
-    name: Backend kompilering
+    name: Backend-tester
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -37,5 +40,17 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
-      - name: Kompiler backend
-        run: ./gradlew compileKotlin compileTestKotlin --no-daemon
+      - name: Kjør alle backend-tester
+        run: ./gradlew test --no-daemon
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-rapport
+          path: build/reports/tests/test/
+          retention-days: 30
+      - uses: dorny/test-reporter@v3
+        if: always()
+        with:
+          name: JUnit Tester
+          path: build/test-results/test/*.xml
+          reporter: java-junit
