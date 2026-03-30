@@ -5,16 +5,26 @@ on:
     branches: [main, 'auto/**']
     paths-ignore:
       - '**.md'
-      - 'CLAUDE.md'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'docker-compose*.yml'
+      - '.env*'
       - 'LICENSE'
       - '.gitignore'
   pull_request:
     branches: [main]
     paths-ignore:
       - '**.md'
-      - 'CLAUDE.md'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'docker-compose*.yml'
+      - '.env*'
       - 'LICENSE'
       - '.gitignore'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -24,6 +34,7 @@ jobs:
   build-and-test:
     name: Bygg og test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Sjekk ut kode
