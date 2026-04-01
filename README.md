@@ -210,7 +210,7 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.3.20, Ktor 3.4.1 (Server + Client CIO), Exposed 0.61.0, JVM 21
+- Kotlin 2.3.20, Ktor 3.4.2 (Server + Client CIO), Exposed 0.61.0, JVM 21
 - SLF4J 2.0.17 (compileOnly)
 - Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
