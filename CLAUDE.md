@@ -25,10 +25,10 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 ## Teknisk
 
 - **Kotlin**: 2.3.20
-- **Ktor**: 3.4.1 (compileOnly)
+- **Ktor**: 3.4.2 (compileOnly)
 - **Exposed**: 0.61.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.10.0 (compileOnly)
-- **Ktor Client** (CIO): 3.4.1 (compileOnly) — brukes av GitHubIssueService
+- **Ktor Client** (CIO): 3.4.2 (compileOnly) — brukes av GitHubIssueService
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 21
 - **Tester**: JUnit 5.14.3
