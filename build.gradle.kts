@@ -18,6 +18,8 @@ dependencies {
     // Ktor server (compileOnly — apper har sin egen versjon)
     compileOnly("io.ktor:ktor-server-core:$ktorVersion")
     compileOnly("io.ktor:ktor-server-status-pages:$ktorVersion")
+    compileOnly("io.ktor:ktor-server-auth:$ktorVersion")
+    compileOnly("io.ktor:ktor-server-auth-jwt:$ktorVersion")
 
     // Ktor client (compileOnly — for GitHubIssueService)
     compileOnly("io.ktor:ktor-client-core:$ktorVersion")
@@ -47,6 +49,8 @@ dependencies {
     testImplementation("io.ktor:ktor-server-core:$ktorVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-auth:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
     testImplementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
 }
 
