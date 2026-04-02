@@ -1,8 +1,10 @@
 package no.grunnmur
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 /**
  * Verktoey for tidssone-haandtering.
@@ -34,4 +36,20 @@ object TimeUtils {
      */
     fun formatDateTimeIso(dt: LocalDateTime): String =
         dt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+    /**
+     * Parser en dato- eller dato/tid-streng til LocalDateTime.
+     * Stoetter ISO datetime (2026-03-15T14:30:00) og kun dato (2026-03-15 -> start av dagen).
+     *
+     * @throws IllegalArgumentException ved ugyldig datoformat
+     */
+    fun parseDateTime(value: String): LocalDateTime = try {
+        if (value.contains('T')) {
+            LocalDateTime.parse(value, isoDateTime)
+        } else {
+            LocalDate.parse(value, isoDate).atStartOfDay()
+        }
+    } catch (e: DateTimeParseException) {
+        throw IllegalArgumentException("Ugyldig datoformat: $value", e)
+    }
 }
