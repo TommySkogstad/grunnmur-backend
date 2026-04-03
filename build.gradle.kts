@@ -35,6 +35,9 @@ dependencies {
     // Serialization
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
+    // Jakarta Mail (compileOnly — apper har sin egen versjon)
+    compileOnly("jakarta.mail:jakarta.mail-api:2.1.3")
+
     // Logging
     compileOnly("org.slf4j:slf4j-api:2.0.17")
 
@@ -52,6 +55,11 @@ dependencies {
     testImplementation("io.ktor:ktor-server-auth:$ktorVersion")
     testImplementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
     testImplementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+
+    // Jakarta Mail (test — trenger implementasjon for å kjøre tester)
+    testImplementation("jakarta.mail:jakarta.mail-api:2.1.3")
+    testImplementation("org.eclipse.angus:angus-mail:2.0.3")
+    testImplementation("org.slf4j:slf4j-simple:2.0.17")
 }
 
 java {
