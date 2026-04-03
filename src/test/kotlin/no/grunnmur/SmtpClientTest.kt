@@ -112,6 +112,36 @@ class SmtpClientTest {
         }
 
         @Test
+        fun `send med from-override bruker message from i stedet for config from`() {
+            val (client, messages) = captureClient()
+
+            client.send(EmailMessage(
+                to = "mottaker@example.com",
+                subject = "Override-test",
+                body = "Innhold",
+                from = "oppdrag@leienbiolog.no"
+            ))
+
+            val mime = messages.first()
+            assertTrue(mime.from.any { it.toString().contains("oppdrag@leienbiolog.no") })
+            assertFalse(mime.from.any { it.toString().contains("test@example.com") })
+        }
+
+        @Test
+        fun `send uten from-override bruker config from`() {
+            val (client, messages) = captureClient()
+
+            client.send(EmailMessage(
+                to = "mottaker@example.com",
+                subject = "Default-test",
+                body = "Innhold"
+            ))
+
+            val mime = messages.first()
+            assertTrue(mime.from.any { it.toString().contains("test@example.com") })
+        }
+
+        @Test
         fun `send med htmlBody oppretter multipart alternative`() {
             val (client, messages) = captureClient()
 
