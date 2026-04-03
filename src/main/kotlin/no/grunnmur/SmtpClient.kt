@@ -49,6 +49,7 @@ data class SmtpConfig(
  * @param inReplyTo Valgfri Message-ID for traad-kobling (setter In-Reply-To og References)
  * @param attachments Liste med vedlegg
  * @param from Valgfri avsenderadresse som overstyrer config.from hvis satt
+ * @param fromName Valgfritt avsendernavn som overstyrer config.fromName hvis satt
  */
 data class EmailMessage(
     val to: String,
@@ -58,7 +59,8 @@ data class EmailMessage(
     val replyTo: String? = null,
     val inReplyTo: String? = null,
     val attachments: List<EmailAttachment> = emptyList(),
-    val from: String? = null
+    val from: String? = null,
+    val fromName: String? = null
 )
 
 /**
@@ -247,7 +249,8 @@ class SmtpClient(
         }
 
         val fromAddress = message.from ?: config.from
-        mime.setFrom(InternetAddress(fromAddress, config.fromName, "UTF-8"))
+        val displayName = message.fromName ?: config.fromName
+        mime.setFrom(InternetAddress(fromAddress, displayName, "UTF-8"))
         mime.setRecipient(Message.RecipientType.TO, InternetAddress(message.to))
         mime.subject = message.subject
         mime.sentDate = Date()
