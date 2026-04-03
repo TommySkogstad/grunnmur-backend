@@ -128,6 +128,36 @@ class SmtpClientTest {
         }
 
         @Test
+        fun `send med fromName-override bruker message fromName i stedet for config fromName`() {
+            val (client, messages) = captureClient()
+
+            client.send(EmailMessage(
+                to = "mottaker@example.com",
+                subject = "FromName-test",
+                body = "Innhold",
+                fromName = "Styreportal Sameiet HWA"
+            ))
+
+            val mime = messages.first()
+            assertTrue(mime.from.any { it.toString().contains("Styreportal Sameiet HWA") })
+            assertFalse(mime.from.any { it.toString().contains("Test Avsender") })
+        }
+
+        @Test
+        fun `send uten fromName-override bruker config fromName`() {
+            val (client, messages) = captureClient()
+
+            client.send(EmailMessage(
+                to = "mottaker@example.com",
+                subject = "Default-fromName-test",
+                body = "Innhold"
+            ))
+
+            val mime = messages.first()
+            assertTrue(mime.from.any { it.toString().contains("Test Avsender") })
+        }
+
+        @Test
         fun `send uten from-override bruker config from`() {
             val (client, messages) = captureClient()
 
