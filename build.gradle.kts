@@ -38,6 +38,10 @@ dependencies {
     // Jakarta Mail (compileOnly — apper har sin egen versjon)
     compileOnly("jakarta.mail:jakarta.mail-api:2.1.3")
 
+    // Flyway (compileOnly — apper har sin egen versjon)
+    compileOnly("org.flywaydb:flyway-core:11.8.2")
+    compileOnly("org.flywaydb:flyway-database-postgresql:11.8.2")
+
     // Logging
     compileOnly("org.slf4j:slf4j-api:2.0.17")
 
@@ -60,6 +64,13 @@ dependencies {
     testImplementation("jakarta.mail:jakarta.mail-api:2.1.3")
     testImplementation("org.eclipse.angus:angus-mail:2.0.3")
     testImplementation("org.slf4j:slf4j-simple:2.0.17")
+
+    // Flyway (test)
+    testImplementation("org.flywaydb:flyway-core:11.8.2")
+    testImplementation("org.flywaydb:flyway-database-postgresql:11.8.2")
+
+    // H2 (test — in-memory database for Flyway-tester)
+    testImplementation("com.h2database:h2:2.3.232")
 }
 
 java {

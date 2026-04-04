@@ -21,6 +21,7 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 | GitHubIssueService | `GitHubIssueService.kt` | GitHub API-integrasjon for oppretting av issues med sanitering og vedlegg |
 | ImageUploadService | `ImageUploadService.kt` | Sikker bildeopplasting med magic byte-validering og stoerrelsesbegrensning |
 | GitHubIssueRoutes | `GitHubIssueRoutes.kt` | Ktor-ruter for issue-oppretting og GitHub webhook-mottak med signaturverifisering |
+| FlywayMigration | `FlywayMigration.kt` | Felles Flyway-konfigurasjon med `configure()` og `migrate()` for versjonerte databasemigrasjoner |
 
 ## Teknisk
 
@@ -29,6 +30,7 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 - **Exposed**: 0.61.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.10.0 (compileOnly)
 - **Ktor Client** (CIO): 3.4.2 (compileOnly) — brukes av GitHubIssueService
+- **Flyway**: 11.8.2 (compileOnly)
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 21
 - **Tester**: JUnit 5.14.3
