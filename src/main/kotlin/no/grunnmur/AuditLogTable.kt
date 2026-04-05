@@ -1,7 +1,7 @@
 package no.grunnmur
 
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.datetime
 
 /**
  * Exposed-tabelldefinisjón for audit logging.
