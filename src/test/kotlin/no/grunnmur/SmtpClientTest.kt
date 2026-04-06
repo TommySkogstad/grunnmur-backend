@@ -386,6 +386,22 @@ class SmtpClientTest {
         }
 
         @Test
+        fun `send med requireAuth false fungerer uten STARTTLS`() {
+            val noAuthConfig = testConfig.copy(requireAuth = false)
+            val messages = mutableListOf<MimeMessage>()
+            val client = SmtpClient(noAuthConfig) { mime -> messages.add(mime) }
+
+            val result = client.send(EmailMessage(
+                to = "biolog@example.com",
+                subject = "OTP-kode",
+                body = "Din kode er 123456"
+            ))
+
+            assertTrue(result.success, "Skal kunne sende uten auth/STARTTLS")
+            assertEquals(1, messages.size)
+        }
+
+        @Test
         fun `EmailAttachment equals og hashCode fungerer med ByteArray`() {
             val a = EmailAttachment("test.txt", "hello".toByteArray(), "text/plain")
             val b = EmailAttachment("test.txt", "hello".toByteArray(), "text/plain")

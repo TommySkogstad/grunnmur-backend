@@ -217,7 +217,7 @@ class SmtpClient(
             put("mail.smtp.host", config.host)
             put("mail.smtp.port", config.port.toString())
             put("mail.smtp.auth", config.requireAuth.toString())
-            put("mail.smtp.starttls.enable", "true")
+            put("mail.smtp.starttls.enable", config.requireAuth.toString())
             put("mail.smtp.connectiontimeout", config.timeoutMs.toString())
             put("mail.smtp.timeout", config.timeoutMs.toString())
             put("mail.smtp.writetimeout", config.timeoutMs.toString())
