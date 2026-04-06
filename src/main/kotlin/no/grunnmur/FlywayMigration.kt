@@ -29,7 +29,6 @@ object FlywayMigration {
             .baselineOnMigrate(true)
             .baselineVersion("0")
             .cleanDisabled(true)
-            .callbackLocations("filesystem:nonexistent")
             .load()
     }
 
