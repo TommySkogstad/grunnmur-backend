@@ -23,14 +23,23 @@ object FlywayMigration {
         dataSource: DataSource,
         locations: List<String> = listOf("classpath:db/migration")
     ): Flyway {
-        return Flyway.configure()
+        val config = Flyway.configure()
             .dataSource(dataSource)
             .locations(*locations.toTypedArray())
             .baselineOnMigrate(true)
             .baselineVersion("0")
             .cleanDisabled(true)
-            .callbacks(*emptyArray<org.flywaydb.core.api.callback.Callback>())
-            .load()
+
+        // Flyway 11.20+ skanner classpath:db/callback som standard.
+        // Deaktiver dette for å unngå feil i fat JARs.
+        try {
+            val method = config.javaClass.getMethod("callbackLocations", Array<String>::class.java)
+            method.invoke(config, emptyArray<String>())
+        } catch (_: Exception) {
+            // Eldre Flyway-versjoner har ikke denne metoden
+        }
+
+        return config.load()
     }
 
     /**
