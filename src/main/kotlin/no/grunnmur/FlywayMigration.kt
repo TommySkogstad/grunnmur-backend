@@ -29,7 +29,7 @@ object FlywayMigration {
             .baselineOnMigrate(true)
             .baselineVersion("0")
             .cleanDisabled(true)
-            .configuration(mapOf("flyway.callbackLocations" to ""))
+            .callbackLocations(*emptyArray<String>())
             .load()
     }
 
