@@ -30,7 +30,7 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 - **Exposed**: 1.2.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.10.0 (compileOnly)
 - **Ktor Client** (CIO): 3.4.2 (compileOnly) — brukes av GitHubIssueService
-- **Flyway**: 11.8.2 (compileOnly)
+- **Flyway**: 11.20.3 (compileOnly)
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 25
 - **Tester**: JUnit 5.14.3
