@@ -29,6 +29,7 @@ object FlywayMigration {
             .baselineOnMigrate(true)
             .baselineVersion("0")
             .cleanDisabled(true)
+            .callbacks(*emptyArray<org.flywaydb.core.api.callback.Callback>())
             .load()
     }
 
