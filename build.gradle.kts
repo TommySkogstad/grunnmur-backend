@@ -70,7 +70,7 @@ dependencies {
     testImplementation("org.flywaydb:flyway-database-postgresql:11.8.2")
 
     // H2 (test — in-memory database for Flyway-tester)
-    testImplementation("com.h2database:h2:2.3.232")
+    testImplementation("com.h2database:h2:2.4.240")
 }
 
 java {
