@@ -3,34 +3,224 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 
-## Moduler
+Sist oppdatert: 2026-04-08
 
-| Modul | Fil | Beskrivelse |
-|-------|-----|-------------|
-| Exceptions | `Exceptions.kt` | BadRequest, NotFound, Forbidden, RateLimit, Authentication |
-| RouteUtils | `RouteUtils.kt` | `requireIntParam()`, `requireParam()`, `checkRateLimit()` |
-| StatusPages | `StatusPagesConfig.kt` | `grunnmurExceptionHandlers()` for Ktor StatusPages |
-| CSRF | `CsrfPlugin.kt` | `GrunnmurCsrf` Ktor-plugin med konfigurerbare exempt paths |
-| RateLimiter | `RateLimiter.kt` | In-memory sliding window med cleanup og maxEntries |
-| TimeUtils | `TimeUtils.kt` | `nowOslo()`, `formatDateTime()`, `formatDateTimeIso()` |
-| AuditLog | `AuditLogTable.kt` + `AuditLogService.kt` | Database-basert revisjonslogging med filtrering |
-| Validators | `Validators.kt` | E-post, telefon, URL, navn, tekst, sok, org.nr, passord-validering + XSS-beskyttelse |
-| EncryptionUtils | `EncryptionUtils.kt` | AES-256-GCM-kryptering med hex-nokler |
-| RouteUtils.getClientIp | `RouteUtils.kt` | Proxy-stotte (Cloudflare/nginx/X-Forwarded-For) |
-| InputSanitizer | `InputSanitizer.kt` | Sanitering av brukerinput for GitHub Issues (markdown, HTML, mentions, hemmeligheter) |
-| GitHubIssueService | `GitHubIssueService.kt` | GitHub API-integrasjon for oppretting av issues med sanitering og vedlegg |
-| ImageUploadService | `ImageUploadService.kt` | Sikker bildeopplasting med magic byte-validering og stoerrelsesbegrensning |
-| GitHubIssueRoutes | `GitHubIssueRoutes.kt` | Ktor-ruter for issue-oppretting og GitHub webhook-mottak med signaturverifisering |
-| FlywayMigration | `FlywayMigration.kt` | Felles Flyway-konfigurasjon med `configure()` og `migrate()` for versjonerte databasemigrasjoner |
+## Komplett modulreferanse (22 filer, 17 moduler)
+
+### Auth og sikkerhet
+
+#### CsrfPlugin (`CsrfPlugin.kt`) — Ktor ApplicationPlugin
+CSRF-beskyttelse som validerer X-CSRF-Token header mot csrf_token cookie for POST/PUT/DELETE/PATCH.
+Hopper over sjekk for stier i `exemptPaths` og forespoersler uten auth-cookie.
+
+```kotlin
+install(GrunnmurCsrf) {
+    exemptPaths = setOf("/api/auth/login", "/api/auth/request-code", "/api/health")
+    authCookieName = "auth_token"   // default
+    csrfCookieName = "csrf_token"   // default
+    csrfHeaderName = "X-CSRF-Token" // default
+}
+```
+
+Eksporterer: `GrunnmurCsrf` (plugin), `CsrfConfig` (class)
+
+#### RateLimiter (`RateLimiter.kt`) — class
+In-memory sliding window rate limiter. Traadsikker (ConcurrentHashMap). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
+
+```kotlin
+val limiter = RateLimiter(maxAttempts = 5, windowMs = 300_000, maxEntries = 10_000)
+```
+
+- `isAllowed(key: String): Boolean` — sjekker og registrerer
+- `reset(key: String)` — nullstiller (etter vellykket login)
+- `remainingAttempts(key: String): Int`
+- `clear()` — kun for testing
+- `size(): Int` — for monitorering
+
+#### EncryptionUtils (`EncryptionUtils.kt`) — object
+AES-256-GCM-kryptering. Nokler: 64 hex-tegn (32 bytes). Output: Base64(IV || ciphertext || GCM-tag). Ingen fallback til plaintext.
+
+- `encrypt(plaintext: String, hexKey: String): String`
+- `decrypt(ciphertext: String, hexKey: String): String?` — returnerer null ved feil
+- `generateKey(): String` — ny tilfeldig 64 hex-tegn noekkel
+- `base64KeyToHex(base64Key: String): String` — for migrering
+
+#### TotpService (`TotpService.kt`) — object
+TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, +-2 vinduer toleranse. Bruker EncryptionUtils for kryptering. Dev-kode: "000000".
+
+- `setupTotp(encryptionKey: String, issuer: String, accountName: String): TotpSetupResult` — genererer hemmelighet + QR-URI
+- `confirmTotp(encryptedSecret: String, encryptionKey: String, code: String): Boolean`
+- `verifyTotp(encryptedSecret: String, encryptionKey: String, code: String, devMode: Boolean = false): Boolean`
+- `generateBackupCodes(count: Int = 10): List<String>` — format XXXX-XXXX
+- `verifyBackupCode(code: String, encryptedCodes: String, encryptionKey: String): Pair<Boolean, String?>` — returnerer (gyldig, oppdaterte krypterte koder)
+- `encryptBackupCodes(codes: List<String>, encryptionKey: String): String`
+- `disableTotp(): Triple<Boolean, String?, String?>` — null-verdier for DB-nullstilling
+
+#### TotpModels (`TotpModels.kt`) — data classes
+- `TotpSetupResult(secret: String, qrUri: String)` — @Serializable
+- `TotpConfirmResult(backupCodes: List<String>)` — @Serializable
+
+#### OtpUtils (`OtpUtils.kt`) — object
+One-Time Password med SHA-256. Dev-modus: kode "123456" fungerer alltid. Lagring/utsending er appens ansvar.
+
+- `generateCode(): String` — 6-sifret (100000-999999)
+- `hashCode(code: String): String` — SHA-256, 64 hex-tegn
+- `verify(code, storedHash, expiresAt, attempts, maxAttempts = 3, devMode = false): OtpVerificationResult`
+
+`OtpVerificationResult` (sealed class): `Success`, `InvalidCode`, `Expired`, `TooManyAttempts`
+
+#### AuthExtensions (`AuthExtensions.kt`) — extension functions paa ApplicationCall
+- `getUserId(): Int?` — fra JWT "userId"-claim
+- `requireUserId(): Int` — kaster AuthenticationException
+- `getUserEmail(): String?` — fra JWT "email"-claim
+
+### HTTP og routing
+
+#### RouteUtils (`RouteUtils.kt`) — extension functions paa ApplicationCall
+- `requireIntParam(name: String): Int` — kaster BadRequestException
+- `requireParam(name: String): String` — kaster BadRequestException
+- `checkRateLimit(allowed: Boolean, message: String)` — kaster RateLimitException
+- `getClientIp(): String` — sjekker CF-Connecting-IP -> X-Real-IP -> X-Forwarded-For -> remoteAddress
+
+#### StatusPagesConfig (`StatusPagesConfig.kt`) — extension function paa StatusPagesConfig
+`grunnmurExceptionHandlers()` — mapper grunnmur-exceptions til HTTP-statuskoder:
+- BadRequestException -> 400, NotFoundException -> 404, ForbiddenException -> 403
+- RateLimitException -> 429, AuthenticationException -> 401
+- IllegalArgumentException -> 400, Throwable -> 500 (skjuler detaljer i prod via KTOR_ENV=production)
+
+### Database
+
+#### FlywayMigration (`FlywayMigration.kt`) — object
+Felles Flyway-konfigurasjon: baselineOnMigrate=true, baselineVersion="0", cleanDisabled=true.
+
+- `configure(dataSource: DataSource, locations: List<String> = listOf("classpath:db/migration")): Flyway`
+- `migrate(dataSource: DataSource, locations: List<String>): Int` — returnerer antall kjorte migrasjoner
+
+#### AuditLogTable (`AuditLogTable.kt`) — object AuditLogs : Table("audit_logs")
+Exposed-tabelldefinisjón: id, userId, userEmail, action, entityType, entityId, details, ipAddress, createdAt.
+Indekser: (entityType, entityId), (createdAt), (userId).
+
+#### AuditLogService (`AuditLogService.kt`) — class
+Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Feil i logging stopper ikke hovedoperasjonen.
+
+- `log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Int? = null, details: String? = null, ipAddress: String? = null)`
+- `findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>`
+- `count(action?, entityType?, userId?, startDate?, endDate?): Long`
+- `cleanupOldLogs(retentionDays: Int = 365): Int`
+
+`AuditLogEntry` (data class): id, userId, userEmail, action, entityType, entityId, details, ipAddress, timestamp
+
+#### PaginatedResponse (`PaginatedResponse.kt`) — @Serializable data class
+`PaginatedResponse<T>(items: List<T>, total: Long, limit: Int, offset: Long)`
+
+### Validering
+
+#### Validators (`Validators.kt`) — object
+Ren Kotlin (ingen Ktor/Exposed). Returnerer `ValidationResult(isValid: Boolean, errors: List<String>)`.
+
+- `validateEmail(email: String): ValidationResult` — RFC 5322 forenklet
+- `isValidEmail(email: String): Boolean`
+- `validatePhone(phone: String?, strict: Boolean = true): ValidationResult` — strict = norsk 8-sifret
+- `isValidPhone(phone: String): Boolean` — liberalt format
+- `validateUrl(url: String, maxLength: Int = 2048): ValidationResult` — blokkerer javascript:, data:, file: etc
+- `validateName(name, fieldName = "Navn", minLength = 1, maxLength = 255): ValidationResult` — XSS-sjekk
+- `validateTextField(value?, fieldName, required, minLength, maxLength): ValidationResult`
+- `validateSearchQuery(query?, maxLength = 100): ValidationResult` — SQL-injeksjonsbeskyttelse
+- `validateOrganizationNumber(orgNumber?): ValidationResult` — 9 siffer
+- `validatePassword(password: String): ValidationResult` — 8+ tegn, bokstav+tall, blokkerer vanlige
+- `sanitizeHtml(input: String): String` — erstatter <>&"' med HTML-entiteter
+
+#### InputSanitizer (`InputSanitizer.kt`) — object
+Sanitering for GitHub Issues. Alle funksjoner er rene og traadsikre.
+
+- `sanitize(text: String, maxLength: Int): String` — kombinerer alle steg
+- `sanitizeMarkdown(text: String): String` — fjerner markdown-lenker/bilder, HTML-tags, script-blokker
+- `sanitizeMentions(text: String): String` — wrapper @mentions i backticks
+- `filterSecrets(text: String): String` — maskerer JWT, GitHub-tokens (ghp_/gho_/ghu_/ghs_/ghr_), sk_-tokens, lange hex
+- `truncate(text: String, maxLength: Int): String`
+
+Konstanter: `MAX_DESCRIPTION_LENGTH = 2000`, `MAX_LOGS_LENGTH = 10000`, `MAX_TITLE_LENGTH = 256`
+
+### Tid
+
+#### TimeUtils (`TimeUtils.kt`) — object
+Europe/Oslo-tidssone for konsistent norsk tid.
+
+- `nowOslo(): LocalDateTime`
+- `formatDateTime(dt: LocalDateTime): String` — "yyyy-MM-dd HH:mm"
+- `formatDateTimeIso(dt: LocalDateTime): String` — ISO-format
+- `parseDateTime(value: String): LocalDateTime` — stoetter "2026-03-15T14:30:00" og "2026-03-15"
+
+Felt: `OSLO_ZONE: ZoneId`, `isoDateTime: DateTimeFormatter`, `isoDate: DateTimeFormatter`
+
+### Tjenester
+
+#### SmtpClient (`SmtpClient.kt`) — class
+Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende).
+
+- `send(message: EmailMessage, forceDelivery: Boolean = false): SendResult`
+- `sendWithMessageId(message: EmailMessage, messageId: String, forceDelivery: Boolean = false): SendResult`
+
+Dataklasser:
+- `SmtpConfig(host, port = 587, user, password, from, fromName, requireAuth = true, devMode = false, timeoutMs = 10000, minIntervalMs = 100)`
+- `EmailMessage(to, subject, body, htmlBody?, replyTo?, inReplyTo?, attachments = [], from?, fromName?)`
+- `EmailAttachment(filename, content: ByteArray, contentType)`
+- `SendResult(success: Boolean, messageId?, error?)`
+
+#### GitHubIssueService (`GitHubIssueService.kt`) — class
+GitHub API for issues. Stoetter PAT og GitHub App-autentisering. Saniterer all input via InputSanitizer.
+
+- `createIssue(title, senderName, senderEmail, description, consoleLogs?, imageFilenames?, labels): GitHubIssueResponse` (suspend)
+- `updateIssueBody(issueNumber: Int, body: String)` (suspend)
+- `buildBody(senderName, senderEmail, description, consoleLogs?, imageFilenames?): String`
+
+Config: `Config(token?, appAuth?, repo, uploadDir?, publicBaseUrl?)`
+
+#### GitHubAppAuth (`GitHubAppAuth.kt`) — class
+GitHub App JWT (RS256) autentisering med installation token-caching. Fornyer automatisk 5 min foer utloep.
+
+- `getToken(): String` (suspend) — returnerer gyldig installation token
+
+Konstruktoer: `GitHubAppAuth(appId: String, privateKeyPem: String, installationId: String)`
+
+#### GitHubIssueRoutes (`GitHubIssueRoutes.kt`) — extension function paa Route
+Registrerer ruter for issue-opprettelse og GitHub webhook.
+
+- `Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig)` — registrerer POST /api/issues og POST /api/issues/webhook
+
+Hjelpefunksjoner:
+- `verifyWebhookSignature(payload: ByteArray, signature: String, secret: String): Boolean` — HMAC-SHA256
+- `parseWebhookAction(payload: String): Pair<String, Int>?` — (action, issueNumber)
+
+Dataklasser: `GitHubIssueRoutesConfig`, `CreateIssueResponse`
+
+#### ImageUploadService (`ImageUploadService.kt`) — class
+Sikker bildeopplasting. Validerer filtype via magic bytes (PNG/JPEG/WEBP), haandhever stoerrelsesbegrensning, genererer tilfeldige filnavn (UUID).
+
+- `uploadImage(issueNumber: Int, data: ByteArray, originalFilename: String): Result<String>` — returnerer offentlig URL
+- `deleteIssueImages(issueNumber: Int)` — sletter alle bilder for en issue
+- `cleanupClosedIssues(openIssueNumbers: Set<Int>)` — sletter bilder for lukkede issues
+
+Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIssue = 3)`
+
+### Modeller
+
+#### Exceptions (`Exceptions.kt`) — 5 exception-klasser
+- `BadRequestException(message)` -> 400
+- `NotFoundException(message)` -> 404
+- `ForbiddenException(message)` -> 403
+- `RateLimitException(message)` -> 429
+- `AuthenticationException(message)` -> 401
 
 ## Teknisk
 
 - **Kotlin**: 2.3.20
-- **Ktor**: 3.4.2 (compileOnly)
+- **Ktor**: 3.4.2 (compileOnly — Server + Client CIO)
 - **Exposed**: 1.2.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.10.0 (compileOnly)
-- **Ktor Client** (CIO): 3.4.2 (compileOnly) — brukes av GitHubIssueService
+- **Jakarta Mail**: 2.1.5 (compileOnly)
 - **Flyway**: 11.20.3 (compileOnly)
+- **kotlin-onetimepassword**: 2.4.1 (compileOnly)
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 25
 - **Tester**: JUnit 5.14.3
@@ -76,20 +266,20 @@ COPY --from=grunnmur . /app/grunnmur
 
 ### CI (GitHub Actions)
 
-To-nivå CI-pipeline (kun backend, ingen frontend):
+To-nivaa CI-pipeline (kun backend, ingen frontend):
 
-**Hurtigsjekk** (`test.yml`) — kjøres ved push til `main` og `auto/**`:
+**Hurtigsjekk** (`test.yml`) — kjores ved push til `main` og `auto/**`:
 - `compileKotlin` + `compileTestKotlin` (verifiserer at koden kompilerer)
-- Kjøretid: ~1 minutt
+- Kjoretid: ~1 minutt
 
-**Fullstendig testsuite** (`test-full.yml`) — kjøres ved PR mot `main` og manuelt (`workflow_dispatch`):
+**Fullstendig testsuite** (`test-full.yml`) — kjores ved PR mot `main` og manuelt (`workflow_dispatch`):
 - Alle JUnit 5-tester
-- Dependabot-PRer utløser kun hurtigsjekk, ikke full suite
-- Kjøretid: ~2-3 minutter
+- Dependabot-PRer utloeser kun hurtigsjekk, ikke full suite
+- Kjoretid: ~2-3 minutter
 
-**Nattlig** — ci-fix-daily (kl 04:30) kjører full testsuite og fikser eventuelle feil.
+**Nattlig** — ci-fix-daily (kl 04:30) kjoerer full testsuite og fikser eventuelle feil.
 
-Begge workflows har `concurrency: cancel-in-progress` for å avbryte utdaterte kjøringer.
+Begge workflows har `concurrency: cancel-in-progress` for aa avbryte utdaterte kjoeringer.
 
 Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 ```yaml
@@ -103,9 +293,9 @@ Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 ## Konvensjoner
 
 - Ktor og Exposed er `compileOnly` — apper har sine egne versjoner
-- Versjoner i grunnmur MÅ matche appene (Kotlin metadata og Exposed er binar-inkompatible)
+- Versjoner i grunnmur MAA matche appene (Kotlin metadata og Exposed er binaer-inkompatible)
 - AuditLogService bruker strenger for action/entityType — apper definerer egne enums
-- Feilmeldinger pa norsk
+- Feilmeldinger paa norsk
 - Alle tider via `TimeUtils.nowOslo()`
 
 ## Utvikling
@@ -117,7 +307,7 @@ Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 
 ## Viktig
 
-- Ved Dependabot-oppgraderinger: oppgrader grunnmur FORST, deretter alle 4 apper til samme versjoner
+- Ved Dependabot-oppgraderinger: oppgrader grunnmur FOERST, deretter alle 4 apper til samme versjoner
 - Kotlin metadata 2.3 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
-- Exposed-versjoner ma vaere identiske mellom grunnmur og apper
-- **Kryssrepo-avhengigheter**: Grunnmur er et delt bibliotek. Naar ny funksjonalitet legges til, opprett GitHub issue paa grunnmur FORST, deretter issues paa alle apper som skal bruke den nye modulen med `Blokkert av: TommySkogstad/grunnmur#nummer` i issue-bodyen. Issue-triage haandterer avhengighetsrekkefoelgen automatisk — blokkerte issues venter til grunnmur-issuen er lukket.
+- Exposed-versjoner maa vaere identiske mellom grunnmur og apper
+- **Kryssrepo-avhengigheter**: Grunnmur er et delt bibliotek. Naar ny funksjonalitet legges til, opprett GitHub issue paa grunnmur FOERST, deretter issues paa alle apper som skal bruke den nye modulen med `Blokkert av: TommySkogstad/grunnmur#nummer` i issue-bodyen. Issue-triage haandterer avhengighetsrekkefoeolgen automatisk — blokkerte issues venter til grunnmur-issuen er lukket.

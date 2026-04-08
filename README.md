@@ -6,41 +6,16 @@
 
 <p align="center">Felles Kotlin-bibliotek for Ktor-appene i portefoljen.<br>Standardiserer patterns som tidligere var duplisert med variasjoner mellom apper.</p>
 
-## Innhold
+<p align="center"><em>Sist oppdatert: 2026-04-08</em></p>
 
-### Exceptions (`no.grunnmur`)
-Typed exceptions som mappes til HTTP-statuskoder via StatusPages:
+---
 
-```kotlin
-throw BadRequestException("Ugyldig e-postadresse")   // -> 400
-throw NotFoundException("Bruker ikke funnet")         // -> 404
-throw ForbiddenException("Krever admin-tilgang")      // -> 403
-throw RateLimitException()                            // -> 429
-throw AuthenticationException()                       // -> 401
-```
+## Moduloversikt
 
-### RouteUtils (`no.grunnmur`)
-Extension functions for Ktor `ApplicationCall`:
+### Auth og sikkerhet
 
-```kotlin
-get("/{id}") {
-    val id = call.requireIntParam("id")           // Kaster BadRequestException ved ugyldig
-    val slug = call.requireParam("slug")          // Kaster BadRequestException ved manglende
-    call.checkRateLimit(limiter.isAllowed(ip))     // Kaster RateLimitException ved overskridelse
-}
-```
-
-### StatusPages (`no.grunnmur`)
-Installer standard exception-handlers:
-
-```kotlin
-install(StatusPages) {
-    grunnmurExceptionHandlers()
-}
-```
-
-### CSRF Plugin (`no.grunnmur`)
-Konfigurerbar CSRF-beskyttelse:
+#### CsrfPlugin (`CsrfPlugin.kt`)
+Ktor-plugin for CSRF-beskyttelse. Validerer at `X-CSRF-Token`-header matcher `csrf_token`-cookie for muterende operasjoner (POST/PUT/DELETE/PATCH).
 
 ```kotlin
 install(GrunnmurCsrf) {
@@ -49,180 +24,349 @@ install(GrunnmurCsrf) {
 }
 ```
 
-### RateLimiter (`no.grunnmur`)
-In-memory sliding window med automatisk cleanup:
+- **`GrunnmurCsrf`** — Ktor ApplicationPlugin (installeres med `install()`)
+- **`CsrfConfig`** — Konfigurasjon: `exemptPaths`, `authCookieName`, `csrfCookieName`, `csrfHeaderName`
+
+#### RateLimiter (`RateLimiter.kt`)
+In-memory sliding window rate limiter med automatisk cleanup og beskyttelse mot minnelekkasje.
 
 ```kotlin
 val loginLimiter = RateLimiter(maxAttempts = 5, windowMs = 300_000)
-val searchLimiter = RateLimiter(maxAttempts = 60, windowMs = 60_000)
 
-if (!loginLimiter.isAllowed(clientIp)) {
-    throw RateLimitException()
-}
-
-// Etter vellykket login
-loginLimiter.reset(clientIp)
+if (!loginLimiter.isAllowed(clientIp)) throw RateLimitException()
+loginLimiter.reset(clientIp) // Etter vellykket login
 ```
 
-### TimeUtils (`no.grunnmur`)
-Konsistent norsk tid:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `isAllowed` | `(key: String): Boolean` | Sjekker og registrerer forsok |
+| `reset` | `(key: String)` | Nullstiller teller for en noekkel |
+| `remainingAttempts` | `(key: String): Int` | Gjenvaerende forsok |
+| `clear` | `()` | Nullstill alt (kun testing) |
+| `size` | `(): Int` | Antall aktive entries |
+
+#### EncryptionUtils (`EncryptionUtils.kt`)
+AES-256-GCM-kryptering med hex-nokler (64 hex-tegn = 32 bytes). Output: Base64(IV + ciphertext + GCM-tag).
 
 ```kotlin
-val now = TimeUtils.nowOslo()
-val formatted = TimeUtils.formatDateTime(now)  // "2026-03-07 14:30"
+val key = EncryptionUtils.generateKey()               // Ny 64 hex-tegn noekkel
+val encrypted = EncryptionUtils.encrypt(plaintext, key)
+val decrypted = EncryptionUtils.decrypt(encrypted, key) // null ved feil
 ```
 
-### AuditLog (`no.grunnmur`)
-Database-basert revisjonslogging:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `encrypt` | `(plaintext: String, hexKey: String): String` | Krypterer med AES-256-GCM |
+| `decrypt` | `(ciphertext: String, hexKey: String): String?` | Dekrypterer, null ved feil |
+| `generateKey` | `(): String` | Genererer tilfeldig 64 hex-tegn noekkel |
+| `base64KeyToHex` | `(base64Key: String): String` | Konverterer Base64-noekkel til hex |
+
+#### TotpService (`TotpService.kt`)
+TOTP-tjeneste for tofaktorautentisering (RFC 6238). Bruker EncryptionUtils for kryptering av hemmeligheter.
+
+```kotlin
+val setup = TotpService.setupTotp(encryptionKey, "Min App", "bruker@eksempel.no")
+// setup.secret -> kryptert hemmelighet, setup.qrUri -> otpauth://-URI
+
+val ok = TotpService.verifyTotp(encryptedSecret, encryptionKey, "123456", devMode = false)
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `setupTotp` | `(encryptionKey, issuer, accountName): TotpSetupResult` | Starter TOTP-oppsett |
+| `confirmTotp` | `(encryptedSecret, encryptionKey, code): Boolean` | Bekrefter QR-kode-skanning |
+| `verifyTotp` | `(encryptedSecret, encryptionKey, code, devMode): Boolean` | Verifiserer TOTP-kode |
+| `generateBackupCodes` | `(count: Int = 10): List<String>` | Genererer backup-koder (XXXX-XXXX) |
+| `verifyBackupCode` | `(code, encryptedCodes, encryptionKey): Pair<Boolean, String?>` | Verifiserer backup-kode |
+| `encryptBackupCodes` | `(codes, encryptionKey): String` | Krypterer backup-koder for DB |
+| `disableTotp` | `(): Triple<Boolean, String?, String?>` | Null-verdier for deaktivering |
+
+#### OtpUtils (`OtpUtils.kt`)
+OTP-haandtering (One-Time Password) med SHA-256-hashing. Dev-modus: kode "123456" fungerer alltid.
+
+```kotlin
+val code = OtpUtils.generateCode()         // "847291"
+val hash = OtpUtils.hashCode(code)         // SHA-256 hex
+val result = OtpUtils.verify(code, hash, expiresAt, attempts, devMode = true)
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `generateCode` | `(): String` | Tilfeldig 6-sifret kode (100000-999999) |
+| `hashCode` | `(code: String): String` | SHA-256 hash (64 hex-tegn) |
+| `verify` | `(code, storedHash, expiresAt, attempts, ...): OtpVerificationResult` | Verifiserer OTP |
+
+**`OtpVerificationResult`** (sealed class): `Success`, `InvalidCode`, `Expired`, `TooManyAttempts`
+
+#### AuthExtensions (`AuthExtensions.kt`)
+Extension functions for JWT-autentisering paa `ApplicationCall`.
+
+```kotlin
+val userId = call.getUserId()       // Int? fra JWT "userId"-claim
+val userId = call.requireUserId()   // Int, kaster AuthenticationException
+val email = call.getUserEmail()     // String? fra JWT "email"-claim
+```
+
+---
+
+### HTTP og routing
+
+#### RouteUtils (`RouteUtils.kt`)
+Extension functions for Ktor `ApplicationCall` — parameteruthenting, rate limiting og IP-oppslag.
+
+```kotlin
+val id = call.requireIntParam("id")
+val slug = call.requireParam("slug")
+call.checkRateLimit(limiter.isAllowed(ip))
+val clientIp = call.getClientIp()
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `requireIntParam` | `(name: String): Int` | Henter int-param, kaster BadRequestException |
+| `requireParam` | `(name: String): String` | Henter string-param, kaster BadRequestException |
+| `checkRateLimit` | `(allowed: Boolean, message: String)` | Kaster RateLimitException |
+| `getClientIp` | `(): String` | IP via CF-Connecting-IP / X-Real-IP / X-Forwarded-For |
+
+#### StatusPagesConfig (`StatusPagesConfig.kt`)
+Standard exception-handlers for alle grunnmur-exceptions.
+
+```kotlin
+install(StatusPages) {
+    grunnmurExceptionHandlers()
+}
+```
+
+Mapper: `BadRequestException` -> 400, `NotFoundException` -> 404, `ForbiddenException` -> 403, `RateLimitException` -> 429, `AuthenticationException` -> 401, `IllegalArgumentException` -> 400, `Throwable` -> 500 (skjuler detaljer i produksjon).
+
+---
+
+### Database
+
+#### FlywayMigration (`FlywayMigration.kt`)
+Felles Flyway-konfigurasjon med fornuftige standardverdier (baselineOnMigrate, cleanDisabled).
+
+```kotlin
+FlywayMigration.migrate(dataSource) // Kjoerer alle ventende migrasjoner
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `configure` | `(dataSource, locations): Flyway` | Konfigurerer Flyway-instans |
+| `migrate` | `(dataSource, locations): Int` | Kjoerer migrasjoner, returnerer antall |
+
+#### AuditLog (`AuditLogTable.kt` + `AuditLogService.kt`)
+Database-basert revisjonslogging med Exposed DSL. Tabellen `audit_logs` med indekser paa entity, created_at og user.
 
 ```kotlin
 val auditLog = AuditLogService()
-
-auditLog.log(
-    userId = user.id,
-    userEmail = user.email,
-    action = "CREATE",
-    entityType = "POST",
-    entityId = post.id,
-    details = "Opprettet beskjed: ${post.title}",
-    ipAddress = clientIp
-)
-
-// Filtrering
+auditLog.log(userId = 1, userEmail = "admin@ex.no", action = "CREATE", entityType = "POST", entityId = 42)
 val logs = auditLog.findAll(action = "DELETE", limit = 50)
-
-// Retention
 auditLog.cleanupOldLogs(retentionDays = 365)
 ```
 
-### Validators (`no.grunnmur`)
-Validering av vanlige inputtyper med XSS-beskyttelse:
+**AuditLogService** (class):
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `log` | `(userId, userEmail, action, entityType, entityId?, details?, ipAddress?)` | Logger handling |
+| `findAll` | `(action?, entityType?, userId?, startDate?, endDate?, limit, offset): List<AuditLogEntry>` | Henter med filtrering |
+| `count` | `(action?, entityType?, userId?, startDate?, endDate?): Long` | Teller med filtrering |
+| `cleanupOldLogs` | `(retentionDays: Int = 365): Int` | Sletter gamle logger |
+
+**AuditLogs** (object: Table) — Exposed-tabelldefinisjonen.
+
+**AuditLogEntry** (data class) — DTO med id, userId, userEmail, action, entityType, entityId, details, ipAddress, timestamp.
+
+#### PaginatedResponse (`PaginatedResponse.kt`)
+Generisk paginert responsformat for API-endepunkter.
 
 ```kotlin
-Validators.email("bruker@eksempel.no")      // true/false
-Validators.phone("+4712345678")             // true/false
-Validators.url("https://eksempel.no")       // true/false
-Validators.name("Ola Nordmann")             // true/false
-Validators.text("Fritekst her", maxLength = 500)
-Validators.search("sokeord")
-Validators.orgNumber("123456789")           // Norsk org.nr
-Validators.password("Sikkert passord")
+val response = PaginatedResponse(items = liste, total = 150L, limit = 20, offset = 0L)
 ```
 
-### EncryptionUtils (`no.grunnmur`)
-AES-256-GCM-kryptering med hex-nokler:
+---
+
+### Validering
+
+#### Validators (`Validators.kt`)
+Felles valideringsbibliotek uten Ktor/Exposed-avhengigheter. Returnerer `ValidationResult(isValid, errors)`.
 
 ```kotlin
-val encrypted = EncryptionUtils.encrypt(plaintext, hexKey)
-val decrypted = EncryptionUtils.decrypt(encrypted, hexKey)
+val result = Validators.validateEmail("bruker@eksempel.no")
+if (!result.isValid) println(result.errors)
 ```
 
-### RouteUtils.getClientIp (`no.grunnmur`)
-Hent klientens IP med proxy-stotte:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `validateEmail` | `(email: String): ValidationResult` | RFC 5322 forenklet |
+| `isValidEmail` | `(email: String): Boolean` | Forenklet boolean-variant |
+| `validatePhone` | `(phone: String?, strict: Boolean = true): ValidationResult` | Norsk (strict) eller internasjonalt |
+| `isValidPhone` | `(phone: String): Boolean` | Forenklet boolean-variant |
+| `validateUrl` | `(url: String, maxLength: Int = 2048): ValidationResult` | Med sikkerhetsjekk mot farlige protokoller |
+| `validateName` | `(name, fieldName, minLength, maxLength): ValidationResult` | Med XSS-sjekk |
+| `validateTextField` | `(value?, fieldName, required, minLength, maxLength): ValidationResult` | Generelt tekstfelt |
+| `validateSearchQuery` | `(query: String?, maxLength: Int = 100): ValidationResult` | Soekestreng med SQL-injeksjonsbeskyttelse |
+| `validateOrganizationNumber` | `(orgNumber: String?): ValidationResult` | Norsk org.nr (9 siffer) |
+| `validatePassword` | `(password: String): ValidationResult` | Min 8 tegn, bokstav + tall, blokkerer vanlige |
+| `sanitizeHtml` | `(input: String): String` | Erstatter HTML-spesialtegn |
+
+#### InputSanitizer (`InputSanitizer.kt`)
+Sanitering av brukerinput for GitHub Issues. Fjerner markdown/HTML, maskerer hemmeligheter, beskytter @mentions.
 
 ```kotlin
-val clientIp = call.getClientIp()  // Sjekker CF-Connecting-IP, X-Forwarded-For, fallback
+val safe = InputSanitizer.sanitize(userInput, InputSanitizer.MAX_DESCRIPTION_LENGTH)
 ```
 
-### InputSanitizer (`no.grunnmur`)
-Sanitering av brukerinput for GitHub Issues — fjerner markdown/HTML, maskerer hemmeligheter, beskytter mentions:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `sanitize` | `(text: String, maxLength: Int): String` | Kombinerer alle steg |
+| `sanitizeMarkdown` | `(text: String): String` | Fjerner markdown-lenker, bilder, HTML |
+| `sanitizeMentions` | `(text: String): String` | Wrapper @mentions i backticks |
+| `filterSecrets` | `(text: String): String` | Maskerer JWT, GitHub/OpenAI-tokens, hex-secrets |
+| `truncate` | `(text: String, maxLength: Int): String` | Kutter med markering |
+
+Konstanter: `MAX_DESCRIPTION_LENGTH = 2000`, `MAX_LOGS_LENGTH = 10000`, `MAX_TITLE_LENGTH = 256`
+
+---
+
+### Tid
+
+#### TimeUtils (`TimeUtils.kt`)
+Konsistent norsk tid med Europe/Oslo-tidssone.
 
 ```kotlin
-val sanitized = InputSanitizer.sanitizeDescription(userInput)
-val safeTitle = InputSanitizer.sanitizeTitle(title)
-val safeLogs = InputSanitizer.sanitizeLogs(logOutput)
+val now = TimeUtils.nowOslo()
+val formatted = TimeUtils.formatDateTime(now)      // "2026-03-07 14:30"
+val iso = TimeUtils.formatDateTimeIso(now)          // "2026-03-07T14:30:00"
+val parsed = TimeUtils.parseDateTime("2026-03-07")  // LocalDateTime (start av dag)
 ```
 
-### GitHubIssueService (`no.grunnmur`)
-Oppretter GitHub Issues via API med automatisk sanitering:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `nowOslo` | `(): LocalDateTime` | Naaværende tid i Oslo |
+| `formatDateTime` | `(dt: LocalDateTime): String` | Format: yyyy-MM-dd HH:mm |
+| `formatDateTimeIso` | `(dt: LocalDateTime): String` | ISO-format |
+| `parseDateTime` | `(value: String): LocalDateTime` | Parser dato eller dato/tid |
+
+Felt: `OSLO_ZONE: ZoneId`, `isoDateTime: DateTimeFormatter`, `isoDate: DateTimeFormatter`
+
+---
+
+### Tjenester
+
+#### SmtpClient (`SmtpClient.kt`)
+SMTP-klient for e-postsending via Jakarta Mail. Stoetter HTML, vedlegg, traad-kobling (Message-ID/In-Reply-To), rate limiting og dev-modus.
+
+```kotlin
+val smtp = SmtpClient(SmtpConfig(
+    host = "smtp.example.com", port = 587,
+    user = "bruker", password = "passord",
+    from = "noreply@example.com", fromName = "Min App"
+))
+
+val result = smtp.send(EmailMessage(
+    to = "mottaker@example.com",
+    subject = "Hei",
+    body = "Innhold",
+    htmlBody = "<h1>Hei</h1>"
+))
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `send` | `(message: EmailMessage, forceDelivery: Boolean = false): SendResult` | Sender e-post |
+| `sendWithMessageId` | `(message, messageId, forceDelivery): SendResult` | Sender med egendefinert Message-ID |
+
+Dataklasser: **SmtpConfig**, **EmailMessage**, **EmailAttachment**, **SendResult**
+
+#### GitHubIssueService (`GitHubIssueService.kt`)
+Oppretter og oppdaterer GitHub Issues via API. Stoetter baade PAT og GitHub App-autentisering. All input saniteres via InputSanitizer.
 
 ```kotlin
 val service = GitHubIssueService(GitHubIssueService.Config(
-    token = "ghp_...",
+    token = "ghp_...",   // eller appAuth = GitHubAppAuth(...)
     repo = "owner/repo"
 ))
-
-val result = service.createIssue(
-    title = "Feilrapport",
-    description = "Beskrivelse av problemet",
-    labels = listOf("bug")
-)
+val result = service.createIssue(title = "Bug", senderName = "Ola", senderEmail = "ola@ex.no", description = "...")
 ```
 
-### ImageUploadService (`no.grunnmur`)
-Sikker bildeopplasting med magic byte-validering og stoerrelsesbegrensning:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `createIssue` | `(title, senderName, senderEmail, description, ...): GitHubIssueResponse` | Oppretter issue (suspend) |
+| `updateIssueBody` | `(issueNumber: Int, body: String)` | Oppdaterer issue-body (suspend) |
+| `buildBody` | `(senderName, senderEmail, description, ...): String` | Bygger markdown-body |
+
+#### GitHubAppAuth (`GitHubAppAuth.kt`)
+GitHub App-autentisering med JWT (RS256) og automatisk caching av installation tokens.
 
 ```kotlin
-val imageService = ImageUploadService(ImageUploadService.Config(
+val auth = GitHubAppAuth(appId = "12345", privateKeyPem = pemKey, installationId = "67890")
+val token = auth.getToken() // suspend — cacher og fornyer automatisk
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `getToken` | `(): String` (suspend) | Henter gyldig installation token |
+
+#### GitHubIssueRoutes (`GitHubIssueRoutes.kt`)
+Ktor-ruter for issue-oppretting (multipart med bilder) og GitHub webhook-mottak med HMAC-SHA256-signaturverifisering.
+
+```kotlin
+routing {
+    gitHubIssueRoutes(GitHubIssueRoutesConfig(
+        issueService = issueService,
+        imageService = imageService,
+        rateLimiter = RateLimiter(maxAttempts = 10, windowMs = 60_000),
+        webhookSecret = "secret"
+    ))
+}
+```
+
+Ruter: `POST /api/issues` (oppretter issue med bilder), `POST /api/issues/webhook` (GitHub webhook for opprydding).
+
+Hjelpefunksjoner: `verifyWebhookSignature(payload, signature, secret): Boolean`, `parseWebhookAction(payload): Pair<String, Int>?`
+
+#### ImageUploadService (`ImageUploadService.kt`)
+Sikker bildeopplasting med magic byte-validering (PNG/JPEG/WEBP), stoerrelsesbegrensning og tilfeldige filnavn.
+
+```kotlin
+val service = ImageUploadService(ImageUploadService.Config(
     uploadDir = "/uploads/issues",
     baseUrl = "https://example.com/uploads/issues",
     maxFileSize = 2 * 1024 * 1024,
     maxImagesPerIssue = 3
 ))
-
-val url = imageService.uploadImage(issueNumber = 1, data = bytes, originalFilename = "bilde.png")
+val url = service.uploadImage(issueNumber = 1, data = bytes, originalFilename = "bilde.png")
 ```
 
-### GitHubIssueRoutes (`no.grunnmur`)
-Ktor-ruter for issue-oppretting og GitHub webhook-mottak:
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `uploadImage` | `(issueNumber, data, originalFilename): Result<String>` | Laster opp bilde, returnerer URL |
+| `deleteIssueImages` | `(issueNumber: Int)` | Sletter alle bilder for en issue |
+| `cleanupClosedIssues` | `(openIssueNumbers: Set<Int>)` | Sletter bilder for lukkede issues |
 
-```kotlin
-routing {
-    githubIssueRoutes(GitHubIssueRoutesConfig(
-        issueService = issueService,
-        imageService = imageService,
-        rateLimiter = RateLimiter(maxAttempts = 10, windowMs = 60_000),
-        webhookSecret = "webhook-secret"
-    ))
-}
-```
+---
 
-### AuthExtensions (`no.grunnmur`)
-Extensions for JWT-autentisering i Ktor-ruter:
+### Modeller
 
-```kotlin
-val userId = call.authenticatedUserId()
-val email = call.authenticatedEmail()
-```
+#### Exceptions (`Exceptions.kt`)
+Typed exceptions som mappes til HTTP-statuskoder via StatusPages:
 
-### GitHubAppAuth (`no.grunnmur`)
-GitHub App-autentisering med JWT og installasjonstokens:
+| Exception | HTTP-status |
+|-----------|-------------|
+| `BadRequestException` | 400 Bad Request |
+| `NotFoundException` | 404 Not Found |
+| `ForbiddenException` | 403 Forbidden |
+| `RateLimitException` | 429 Too Many Requests |
+| `AuthenticationException` | 401 Unauthorized |
 
-```kotlin
-val auth = GitHubAppAuth(appId = "12345", privateKey = pemKey, installationId = "67890")
-val token = auth.getInstallationToken()
-```
+#### TotpModels (`TotpModels.kt`)
+Serialiserbare dataklasser for TOTP-operasjoner:
 
-### OtpUtils (`no.grunnmur`)
-Generering og validering av engangspassord (OTP):
+- **`TotpSetupResult`** — `secret: String` (kryptert), `qrUri: String`
+- **`TotpConfirmResult`** — `backupCodes: List<String>`
 
-```kotlin
-val otp = OtpUtils.generate()           // 6-sifret kode
-val valid = OtpUtils.validate(otp, stored)
-```
-
-### SmtpClient (`no.grunnmur`)
-E-postsending via SMTP:
-
-```kotlin
-val smtp = SmtpClient(SmtpClient.Config(
-    host = "smtp.example.com", port = 587,
-    username = "user", password = "pass"
-))
-smtp.send(to = "bruker@eksempel.no", subject = "Emne", body = "Innhold")
-```
-
-### PaginatedResponse (`no.grunnmur`)
-Standard paginert responsformat for API-endepunkter:
-
-```kotlin
-val response = PaginatedResponse(
-    data = items,
-    page = 1,
-    pageSize = 20,
-    totalCount = 150
-)
-```
+---
 
 ## Integrasjon
 
@@ -258,9 +402,10 @@ services:
 ## Versjoner
 
 - Kotlin 2.3.20, Ktor 3.4.2 (Server + Client CIO), Exposed 1.2.0, JVM 25
-- SLF4J 2.0.17 (compileOnly)
-- Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
-- Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
+- kotlinx-serialization-json 1.10.0, Jakarta Mail 2.1.5, Flyway 11.20.3
+- kotlin-onetimepassword 2.4.1, SLF4J 2.0.17
+- Alle avhengigheter er `compileOnly` — apper bruker sine egne versjoner
+- Versjoner MA holdes i sync med appene (binaer inkompatibilitet)
 
 ## Brukes av
 
