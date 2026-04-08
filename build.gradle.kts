@@ -42,6 +42,9 @@ dependencies {
     compileOnly("org.flywaydb:flyway-core:11.20.3")
     compileOnly("org.flywaydb:flyway-database-postgresql:11.20.3")
 
+    // TOTP (compileOnly — apper har sin egen versjon)
+    compileOnly("dev.turingcomplete:kotlin-onetimepassword:2.4.1")
+
     // Logging
     compileOnly("org.slf4j:slf4j-api:2.0.17")
 
