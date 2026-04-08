@@ -177,6 +177,53 @@ routing {
 }
 ```
 
+### AuthExtensions (`no.grunnmur`)
+Extensions for JWT-autentisering i Ktor-ruter:
+
+```kotlin
+val userId = call.authenticatedUserId()
+val email = call.authenticatedEmail()
+```
+
+### GitHubAppAuth (`no.grunnmur`)
+GitHub App-autentisering med JWT og installasjonstokens:
+
+```kotlin
+val auth = GitHubAppAuth(appId = "12345", privateKey = pemKey, installationId = "67890")
+val token = auth.getInstallationToken()
+```
+
+### OtpUtils (`no.grunnmur`)
+Generering og validering av engangspassord (OTP):
+
+```kotlin
+val otp = OtpUtils.generate()           // 6-sifret kode
+val valid = OtpUtils.validate(otp, stored)
+```
+
+### SmtpClient (`no.grunnmur`)
+E-postsending via SMTP:
+
+```kotlin
+val smtp = SmtpClient(SmtpClient.Config(
+    host = "smtp.example.com", port = 587,
+    username = "user", password = "pass"
+))
+smtp.send(to = "bruker@eksempel.no", subject = "Emne", body = "Innhold")
+```
+
+### PaginatedResponse (`no.grunnmur`)
+Standard paginert responsformat for API-endepunkter:
+
+```kotlin
+val response = PaginatedResponse(
+    data = items,
+    page = 1,
+    pageSize = 20,
+    totalCount = 150
+)
+```
+
 ## Integrasjon
 
 Grunnmur brukes via Gradle composite build (`includeBuild`), ikke mavenLocal.
@@ -210,7 +257,7 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.3.20, Ktor 3.4.2 (Server + Client CIO), Exposed 0.61.0, JVM 21
+- Kotlin 2.3.20, Ktor 3.4.2 (Server + Client CIO), Exposed 1.2.0, JVM 25
 - SLF4J 2.0.17 (compileOnly)
 - Ktor og Exposed er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MÅ holdes i sync med appene (binar inkompatibilitet)
