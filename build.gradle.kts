@@ -33,7 +33,7 @@ dependencies {
     compileOnly("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
 
     // Serialization
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Jakarta Mail (compileOnly — apper har sin egen versjon)
     compileOnly("jakarta.mail:jakarta.mail-api:2.1.5")
@@ -55,7 +55,7 @@ dependencies {
     testImplementation("io.ktor:ktor-client-cio:$ktorVersion")
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     testImplementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     testImplementation("io.ktor:ktor-server-core:$ktorVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-server-status-pages:$ktorVersion")
