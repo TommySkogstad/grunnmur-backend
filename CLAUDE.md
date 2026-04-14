@@ -5,7 +5,7 @@ Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 
 Sist oppdatert: 2026-04-08
 
-## Komplett modulreferanse (22 filer, 17 moduler)
+## Komplett modulreferanse (23 filer, 18 moduler)
 
 ### Auth og sikkerhet
 
@@ -34,8 +34,54 @@ val limiter = RateLimiter(maxAttempts = 5, windowMs = 300_000, maxEntries = 10_0
 - `isAllowed(key: String): Boolean` — sjekker og registrerer
 - `reset(key: String)` — nullstiller (etter vellykket login)
 - `remainingAttempts(key: String): Int`
+- `retryAfterSeconds(key: String): Long?` — sekunder til vindu utloeper (null hvis ikke blokkert)
+- `windowMs: Long` — tidsvinduet (public property)
 - `clear()` — kun for testing
 - `size(): Int` — for monitorering
+
+#### RateLimitPresets (`RateLimitPresets.kt`) — funksjoner og class
+Ferdigkonfigurerte rate limitere for vanlige bruksscenarier. Bygger paa RateLimiter.
+
+**CompositeRateLimiter** — sjekker flere vinduer (alle maa tillate):
+```kotlin
+val limiter = CompositeRateLimiter(
+    RateLimiter(maxAttempts = 5, windowMs = 60_000),
+    RateLimiter(maxAttempts = 10, windowMs = 3_600_000)
+)
+```
+- `isAllowed(key: String): Boolean` — alle limitere maa tillate
+- `reset(key: String)` — nullstiller alle
+- `remainingAttempts(key: String): Int` — minimum av alle
+- `retryAfterSeconds(key: String): Long?` — maksimum av alle
+
+**Preset-funksjoner:**
+- `authRateLimiter()` — 5/min + 10/time per IP (for send-otp, verify-otp)
+- `apiRateLimiterAuthenticated()` — 60/min per IP
+- `apiRateLimiterAnonymous()` — 20/min per IP
+
+Brukseksempel i apper:
+```kotlin
+// Opprett én gang i Application.kt
+val authLimiter = authRateLimiter()
+val apiLimiterAuth = apiRateLimiterAuthenticated()
+val apiLimiterAnon = apiRateLimiterAnonymous()
+
+// Auth-ruter
+post("/api/auth/send-otp") {
+    val ip = call.getClientIp()
+    call.checkRateLimit(
+        authLimiter.isAllowed(ip),
+        retryAfterSeconds = authLimiter.retryAfterSeconds(ip)
+    )
+}
+
+// API-ruter
+get("/api/data") {
+    val ip = call.getClientIp()
+    val limiter = if (call.getUserId() != null) apiLimiterAuth else apiLimiterAnon
+    call.checkRateLimit(limiter.isAllowed(ip))
+}
+```
 
 #### EncryptionUtils (`EncryptionUtils.kt`) — object
 AES-256-GCM-kryptering. Nokler: 64 hex-tegn (32 bytes). Output: Base64(IV || ciphertext || GCM-tag). Ingen fallback til plaintext.
@@ -79,7 +125,7 @@ One-Time Password med SHA-256. Dev-modus: kode "123456" fungerer alltid. Lagring
 #### RouteUtils (`RouteUtils.kt`) — extension functions paa ApplicationCall
 - `requireIntParam(name: String): Int` — kaster BadRequestException
 - `requireParam(name: String): String` — kaster BadRequestException
-- `checkRateLimit(allowed: Boolean, message: String)` — kaster RateLimitException
+- `checkRateLimit(allowed: Boolean, message: String, retryAfterSeconds: Long?)` — kaster RateLimitException
 - `getClientIp(): String` — sjekker CF-Connecting-IP -> X-Real-IP -> X-Forwarded-For -> remoteAddress
 
 #### StatusPagesConfig (`StatusPagesConfig.kt`) — extension function paa StatusPagesConfig
@@ -209,7 +255,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 - `BadRequestException(message)` -> 400
 - `NotFoundException(message)` -> 404
 - `ForbiddenException(message)` -> 403
-- `RateLimitException(message)` -> 429
+- `RateLimitException(message, retryAfterSeconds?)` -> 429 (med `Retry-After`-header naar tilgjengelig)
 - `AuthenticationException(message)` -> 401
 
 ## Teknisk

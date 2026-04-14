@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class RateLimiter(
     private val maxAttempts: Int = 5,
-    private val windowMs: Long = 300_000,
+    val windowMs: Long = 300_000,
     private val maxEntries: Int = 10_000
 ) {
     private data class AttemptRecord(val count: Int, val windowStart: Long)
@@ -73,6 +73,22 @@ class RateLimiter(
         }
 
         return (maxAttempts - record.count).coerceAtLeast(0)
+    }
+
+    /**
+     * Returnerer antall sekunder til vinduet utloeper for en blokkert noekkel.
+     * Returnerer null hvis noekkel ikke er blokkert.
+     */
+    fun retryAfterSeconds(key: String): Long? {
+        val now = System.currentTimeMillis()
+        val record = attempts[key] ?: return null
+
+        if (now - record.windowStart > windowMs) return null
+        if (record.count < maxAttempts) return null
+
+        val windowEnd = record.windowStart + windowMs
+        val remainingMs = windowEnd - now
+        return (remainingMs / 1000).coerceAtLeast(1)
     }
 
     /**

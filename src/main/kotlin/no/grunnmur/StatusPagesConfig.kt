@@ -41,6 +41,9 @@ fun StatusPagesConfig.grunnmurExceptionHandlers() {
     }
 
     exception<RateLimitException> { call, cause ->
+        cause.retryAfterSeconds?.let { seconds ->
+            call.response.header(HttpHeaders.RetryAfter, seconds.toString())
+        }
         call.respond(
             HttpStatusCode.TooManyRequests,
             mapOf("error" to (cause.message ?: "For mange forespoersler"))
