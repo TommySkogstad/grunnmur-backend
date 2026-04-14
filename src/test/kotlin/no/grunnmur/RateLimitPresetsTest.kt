@@ -1,9 +1,11 @@
 package no.grunnmur
 
 import org.junit.jupiter.api.Test
+import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RateLimitPresetsTest {
@@ -214,6 +216,131 @@ class RateLimitPresetsTest {
             assertEquals(30L, e.retryAfterSeconds)
         }
     }
+
+    // --- AuthRateLimiter ---
+
+    @Test
+    fun `AuthRateLimiter tillater naar baade IP og identifikator er OK`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 5, perHourMax = 10,
+            perIdentifierMax = 5, perIdentifierWindowMs = 900_000
+        )
+        assertTrue(limiter.isAllowed("192.168.1.1", "+4712345678"))
+    }
+
+    @Test
+    fun `AuthRateLimiter blokkerer naar IP er blokkert`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 2, perHourMax = 10,
+            perIdentifierMax = 10, perIdentifierWindowMs = 900_000
+        )
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertFalse(limiter.isAllowed("ip1", "phone1"), "Skal blokkeres av IP per-minutt limiter")
+    }
+
+    @Test
+    fun `AuthRateLimiter blokkerer naar identifikator er blokkert`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 10, perHourMax = 20,
+            perIdentifierMax = 2, perIdentifierWindowMs = 900_000
+        )
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertTrue(limiter.isAllowed("ip2", "phone1"))
+        assertFalse(limiter.isAllowed("ip3", "phone1"), "Skal blokkeres av identifikator-limiter")
+    }
+
+    @Test
+    fun `AuthRateLimiter registrerer forsoek i begge selv naar en blokkerer`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 2, perHourMax = 10,
+            perIdentifierMax = 5, perIdentifierWindowMs = 900_000
+        )
+        // Bruk opp IP per-minutt
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        // IP er blokkert, men identifikator skal fortsatt registreres
+        assertFalse(limiter.isAllowed("ip1", "phone1"))
+
+        // Identifikator har naa 3 forsoek — verifiser at 2 igjen
+        assertEquals(2, limiter.remainingAttempts("ip2", "phone1"),
+            "Identifikator skal ha 3 brukt via ip1, foerste kall for ip2 gir 2 igjen for identifikator")
+    }
+
+    @Test
+    fun `AuthRateLimiter reset nullstiller baade IP og identifikator`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 2, perHourMax = 10,
+            perIdentifierMax = 2, perIdentifierWindowMs = 900_000
+        )
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertTrue(limiter.isAllowed("ip1", "phone1"))
+        assertFalse(limiter.isAllowed("ip1", "phone1"))
+
+        limiter.reset("ip1", "phone1")
+        assertTrue(limiter.isAllowed("ip1", "phone1"), "Skal vaere tillatt etter reset")
+    }
+
+    @Test
+    fun `AuthRateLimiter remainingAttempts returnerer minimum av IP og identifikator`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 3, perHourMax = 10,
+            perIdentifierMax = 5, perIdentifierWindowMs = 900_000
+        )
+        limiter.isAllowed("ip1", "phone1")
+        limiter.isAllowed("ip1", "phone1")
+        // IP per-minutt har 1 igjen (3-2), identifikator har 3 igjen (5-2)
+        assertEquals(1, limiter.remainingAttempts("ip1", "phone1"),
+            "Skal returnere minimum av IP (1) og identifikator (3)")
+    }
+
+    @Test
+    fun `AuthRateLimiter retryAfterSeconds returnerer maksimum av IP og identifikator`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 1, perMinuteWindowMs = 30_000,
+            perHourMax = 10, perHourWindowMs = 3_600_000,
+            perIdentifierMax = 1, perIdentifierWindowMs = 900_000
+        )
+        limiter.isAllowed("ip1", "phone1")
+        assertFalse(limiter.isAllowed("ip1", "phone1"))
+
+        val retryAfter = limiter.retryAfterSeconds("ip1", "phone1")
+        assertNotNull(retryAfter)
+        // Per-minutt IP-vindu er 30s, identifikator-vindu er 900s — maks skal vaere naer 900
+        assertTrue(retryAfter > 30, "Skal returnere maks av alle vinduer, var $retryAfter")
+    }
+
+    @Test
+    fun `AuthRateLimiter retryAfterSeconds returnerer null naar ikke blokkert`() {
+        val limiter = authRateLimiterWithIdentifier()
+        assertNull(limiter.retryAfterSeconds("ip1", "phone1"))
+    }
+
+    @Test
+    fun `AuthRateLimiter hasher identifikatorer`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 10, perHourMax = 20,
+            perIdentifierMax = 2, perIdentifierWindowMs = 900_000
+        )
+        // Bruk opp identifikator-limiter med ulike IP-er
+        assertTrue(limiter.isAllowed("ip1", "+4712345678"))
+        assertTrue(limiter.isAllowed("ip2", "+4712345678"))
+        assertFalse(limiter.isAllowed("ip3", "+4712345678"),
+            "Identifikator skal vaere blokkert uavhengig av IP")
+
+        // Annen identifikator skal fortsatt fungere
+        assertTrue(limiter.isAllowed("ip3", "+4798765432"),
+            "Annen identifikator skal vaere upavirket")
+    }
+
+    @Test
+    fun `authRateLimiterWithIdentifier factory-funksjon bruker standardverdier`() {
+        val limiter = authRateLimiterWithIdentifier()
+        // Standardverdier: 5/min IP, 10/time IP, 5/15min identifikator
+        repeat(5) { assertTrue(limiter.isAllowed("ip1", "phone${it}"), "Forsoek ${it + 1} med unik identifikator") }
+        assertFalse(limiter.isAllowed("ip1", "phone99"), "6. forsoek fra samme IP skal blokkeres")
+    }
+
 }
 
 /**
