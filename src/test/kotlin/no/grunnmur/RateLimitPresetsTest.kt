@@ -282,6 +282,19 @@ class RateLimitPresetsTest {
     }
 
     @Test
+    fun `AuthRateLimiter remainingAttempts returnerer minimum av IP og identifikator`() {
+        val limiter = authRateLimiterWithIdentifier(
+            perMinuteMax = 3, perHourMax = 10,
+            perIdentifierMax = 5, perIdentifierWindowMs = 900_000
+        )
+        limiter.isAllowed("ip1", "phone1")
+        limiter.isAllowed("ip1", "phone1")
+        // IP per-minutt har 1 igjen (3-2), identifikator har 3 igjen (5-2)
+        assertEquals(1, limiter.remainingAttempts("ip1", "phone1"),
+            "Skal returnere minimum av IP (1) og identifikator (3)")
+    }
+
+    @Test
     fun `AuthRateLimiter retryAfterSeconds returnerer maksimum av IP og identifikator`() {
         val limiter = authRateLimiterWithIdentifier(
             perMinuteMax = 1, perMinuteWindowMs = 30_000,
@@ -293,7 +306,7 @@ class RateLimitPresetsTest {
 
         val retryAfter = limiter.retryAfterSeconds("ip1", "phone1")
         assertNotNull(retryAfter)
-        // Identifikator-vindu er 900s, IP time-vindu er 3600s — maks skal vaere naer 3600
+        // Per-minutt IP-vindu er 30s, identifikator-vindu er 900s — maks skal vaere naer 900
         assertTrue(retryAfter > 30, "Skal returnere maks av alle vinduer, var $retryAfter")
     }
 

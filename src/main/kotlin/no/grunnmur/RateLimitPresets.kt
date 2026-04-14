@@ -151,6 +151,7 @@ class AuthRateLimiter(
     private val ipLimiter: CompositeRateLimiter,
     private val identifierLimiter: RateLimiter
 ) {
+    private val salt = java.util.UUID.randomUUID().toString()
     /**
      * Sjekker om baade IP og identifikator er tillatt.
      * Registrerer forsoeket i begge uavhengig av resultat.
@@ -192,7 +193,7 @@ class AuthRateLimiter(
 
     private fun hashIdentifier(identifier: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(identifier.toByteArray())
+        return digest.digest("$salt:$identifier".toByteArray())
             .joinToString("") { "%02x".format(it) }
     }
 }
