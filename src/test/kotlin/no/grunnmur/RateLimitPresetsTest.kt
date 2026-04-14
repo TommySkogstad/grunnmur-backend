@@ -158,6 +158,37 @@ class RateLimitPresetsTest {
         assertTrue(retryAfter > 30, "Skal returnere maks retry-after, var $retryAfter")
     }
 
+    // --- Edge cases ---
+
+    @Test
+    fun `blokkert kall i limiter A registreres fortsatt i limiter B`() {
+        val minuteLimiter = RateLimiter(maxAttempts = 2, windowMs = 60_000)
+        val hourLimiter = RateLimiter(maxAttempts = 5, windowMs = 3_600_000)
+        val limiter = CompositeRateLimiter(minuteLimiter, hourLimiter)
+
+        // Bruk opp minutt-limiteren
+        assertTrue(limiter.isAllowed("ip1"))  // minutt: 1/2, time: 1/5
+        assertTrue(limiter.isAllowed("ip1"))  // minutt: 2/2, time: 2/5
+
+        // 3. kall: minutt blokkerer (returnerer false uten aa oeke), time registrerer (3/5)
+        assertFalse(limiter.isAllowed("ip1"))
+
+        // Verifiser at time-limiteren har registrert forsoekets
+        assertEquals(2, hourLimiter.remainingAttempts("ip1"), "Time-limiter skal ha 3 brukt, 2 igjen")
+        // Minutt-limiter har IKKE registrert det blokkerte forsoekets (count forblir 2)
+        assertEquals(0, minuteLimiter.remainingAttempts("ip1"), "Minutt-limiter skal ha 0 igjen")
+    }
+
+    @Test
+    fun `CompositeRateLimiter krever minst en limiter`() {
+        try {
+            CompositeRateLimiter()
+            assertTrue(false, "Skal kaste IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("minst"), "Feilmelding skal nevne 'minst'")
+        }
+    }
+
     // --- RateLimitException med retryAfterSeconds ---
 
     @Test

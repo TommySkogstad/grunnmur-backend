@@ -17,6 +17,10 @@ package no.grunnmur
  */
 class CompositeRateLimiter(private vararg val limiters: RateLimiter) {
 
+    init {
+        require(limiters.isNotEmpty()) { "CompositeRateLimiter krever minst én limiter" }
+    }
+
     /**
      * Sjekker om en noekkel er tillatt av ALLE limitere.
      * Registrerer forsoeket i alle limitere uavhengig av resultat.
