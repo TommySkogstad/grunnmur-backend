@@ -39,10 +39,11 @@ fun ApplicationCall.requireParam(name: String): String {
  */
 fun ApplicationCall.checkRateLimit(
     allowed: Boolean,
-    message: String = "For mange forespoersler. Proev igjen senere."
+    message: String = "For mange forespoersler. Proev igjen senere.",
+    retryAfterSeconds: Long? = null
 ) {
     if (!allowed) {
-        throw RateLimitException(message)
+        throw RateLimitException(message, retryAfterSeconds)
     }
 }
 

@@ -22,7 +22,10 @@ class ForbiddenException(message: String = "Ingen tilgang") : Exception(message)
  * Exception for rate limiting.
  * Handteres av StatusPages -> 429 Too Many Requests.
  */
-class RateLimitException(message: String = "For mange forespoersler. Proev igjen senere.") : Exception(message)
+class RateLimitException(
+    message: String = "For mange forespoersler. Proev igjen senere.",
+    val retryAfterSeconds: Long? = null
+) : Exception(message)
 
 /**
  * Exception for autentiseringsfeil.
