@@ -1,5 +1,7 @@
 package no.grunnmur
 
+import java.security.MessageDigest
+
 /**
  * Sammensatt rate limiter som sjekker flere vinduer (alle maa tillate).
  * Brukes for auth-ruter som trenger baade per-minutt og per-time begrensning.
@@ -125,3 +127,105 @@ fun apiRateLimiterAnonymous(
     maxRequests: Int = 20,
     windowMs: Long = 60_000
 ): RateLimiter = RateLimiter(maxAttempts = maxRequests, windowMs = windowMs)
+
+/**
+ * Rate limiter som kombinerer IP-basert og identifikator-basert limiting.
+ * Begge sjekkes alltid — den strengeste vinner (begge maa tillate).
+ * Identifikatorer (telefonnummer/e-post) hashes med SHA-256 saa de ikke lagres i klartekst.
+ *
+ * Bruk:
+ * ```
+ * val limiter = authRateLimiterWithIdentifier()
+ *
+ * post("/api/auth/send-otp") {
+ *     val ip = call.getClientIp()
+ *     val phone = call.receive<OtpRequest>().phone
+ *     call.checkRateLimit(
+ *         limiter.isAllowed(ip, phone),
+ *         retryAfterSeconds = limiter.retryAfterSeconds(ip, phone)
+ *     )
+ * }
+ * ```
+ */
+class AuthRateLimiter(
+    private val ipLimiter: CompositeRateLimiter,
+    private val identifierLimiter: RateLimiter
+) {
+    /**
+     * Sjekker om baade IP og identifikator er tillatt.
+     * Registrerer forsoeket i begge uavhengig av resultat.
+     */
+    fun isAllowed(ip: String, identifier: String): Boolean {
+        val hashedId = hashIdentifier(identifier)
+        val ipAllowed = ipLimiter.isAllowed(ip)
+        val idAllowed = identifierLimiter.isAllowed(hashedId)
+        return ipAllowed && idAllowed
+    }
+
+    /**
+     * Nullstiller tellerne for baade IP og identifikator.
+     */
+    fun reset(ip: String, identifier: String) {
+        ipLimiter.reset(ip)
+        identifierLimiter.reset(hashIdentifier(identifier))
+    }
+
+    /**
+     * Returnerer minimum gjenstaaende forsoek paa tvers av IP og identifikator.
+     */
+    fun remainingAttempts(ip: String, identifier: String): Int {
+        return minOf(
+            ipLimiter.remainingAttempts(ip),
+            identifierLimiter.remainingAttempts(hashIdentifier(identifier))
+        )
+    }
+
+    /**
+     * Returnerer maksimum retry-after-tid paa tvers av IP og identifikator.
+     * Returnerer null hvis ingen er blokkert.
+     */
+    fun retryAfterSeconds(ip: String, identifier: String): Long? {
+        val ipRetry = ipLimiter.retryAfterSeconds(ip)
+        val idRetry = identifierLimiter.retryAfterSeconds(hashIdentifier(identifier))
+        return listOfNotNull(ipRetry, idRetry).maxOrNull()
+    }
+
+    private fun hashIdentifier(identifier: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        return digest.digest(identifier.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }
+}
+
+/**
+ * Ferdigkonfigurert rate limiter for auth-ruter med identifikator-basert limiting.
+ * Kombinerer IP-basert (5/min + 10/time) og identifikator-basert (5/15min).
+ *
+ * Bruk i Ktor:
+ * ```
+ * val authLimiter = authRateLimiterWithIdentifier()
+ *
+ * post("/api/auth/send-otp") {
+ *     val ip = call.getClientIp()
+ *     val phone = call.receive<OtpRequest>().phone
+ *     call.checkRateLimit(
+ *         authLimiter.isAllowed(ip, phone),
+ *         retryAfterSeconds = authLimiter.retryAfterSeconds(ip, phone)
+ *     )
+ * }
+ * ```
+ */
+fun authRateLimiterWithIdentifier(
+    perMinuteMax: Int = 5,
+    perMinuteWindowMs: Long = 60_000,
+    perHourMax: Int = 10,
+    perHourWindowMs: Long = 3_600_000,
+    perIdentifierMax: Int = 5,
+    perIdentifierWindowMs: Long = 900_000
+): AuthRateLimiter = AuthRateLimiter(
+    ipLimiter = CompositeRateLimiter(
+        RateLimiter(maxAttempts = perMinuteMax, windowMs = perMinuteWindowMs),
+        RateLimiter(maxAttempts = perHourMax, windowMs = perHourWindowMs)
+    ),
+    identifierLimiter = RateLimiter(maxAttempts = perIdentifierMax, windowMs = perIdentifierWindowMs)
+)
