@@ -54,8 +54,28 @@ val limiter = CompositeRateLimiter(
 - `remainingAttempts(key: String): Int` — minimum av alle
 - `retryAfterSeconds(key: String): Long?` — maksimum av alle
 
+**AuthRateLimiter** — kombinerer IP-basert og identifikator-basert limiting:
+```kotlin
+val limiter = authRateLimiterWithIdentifier()
+
+post("/api/auth/send-otp") {
+    val ip = call.getClientIp()
+    val phone = call.receive<OtpRequest>().phone
+    call.checkRateLimit(
+        limiter.isAllowed(ip, phone),
+        retryAfterSeconds = limiter.retryAfterSeconds(ip, phone)
+    )
+}
+```
+- `isAllowed(ip: String, identifier: String): Boolean` — begge maa tillate
+- `reset(ip: String, identifier: String)` — nullstiller begge
+- `remainingAttempts(ip: String, identifier: String): Int` — minimum av begge
+- `retryAfterSeconds(ip: String, identifier: String): Long?` — maksimum av begge
+- Identifikatorer hashes med SHA-256 (ikke lagret i klartekst)
+
 **Preset-funksjoner:**
 - `authRateLimiter()` — 5/min + 10/time per IP (for send-otp, verify-otp)
+- `authRateLimiterWithIdentifier()` — IP (5/min + 10/time) + identifikator (5/15min)
 - `apiRateLimiterAuthenticated()` — 60/min per IP
 - `apiRateLimiterAnonymous()` — 20/min per IP
 
