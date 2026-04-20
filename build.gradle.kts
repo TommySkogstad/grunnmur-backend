@@ -40,8 +40,8 @@ dependencies {
 
     // Flyway (compileOnly — apper har sin egen versjon)
     // Pinnet 11.8.2: 11.20.3 og 12.x er buggy, se MEMORY.md
-    compileOnly("org.flywaydb:flyway-core:11.8.2")
-    compileOnly("org.flywaydb:flyway-database-postgresql:11.8.2")
+    compileOnly("org.flywaydb:flyway-core:11.20.3")
+    compileOnly("org.flywaydb:flyway-database-postgresql:11.20.3")
 
     // TOTP (compileOnly — apper har sin egen versjon)
     compileOnly("dev.turingcomplete:kotlin-onetimepassword:2.4.1")
@@ -70,8 +70,8 @@ dependencies {
     testImplementation("org.slf4j:slf4j-simple:2.0.17")
 
     // Flyway (test) — matcher compileOnly
-    testImplementation("org.flywaydb:flyway-core:11.8.2")
-    testImplementation("org.flywaydb:flyway-database-postgresql:11.8.2")
+    testImplementation("org.flywaydb:flyway-core:11.20.3")
+    testImplementation("org.flywaydb:flyway-database-postgresql:11.20.3")
 
     // H2 (test — in-memory database for Flyway-tester)
     testImplementation("com.h2database:h2:2.4.240")
