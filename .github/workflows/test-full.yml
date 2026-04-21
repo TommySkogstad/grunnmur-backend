@@ -24,7 +24,7 @@ permissions:
 jobs:
   backend:
     name: Backend-tester
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'ci:run')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
