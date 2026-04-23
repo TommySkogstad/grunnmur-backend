@@ -7,6 +7,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.Closeable
 import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Base64
@@ -21,7 +22,7 @@ class GitHubAppAuth(
     private val appId: String,
     private val privateKeyPem: String,
     private val installationId: String
-) {
+) : Closeable {
     @Serializable
     private data class InstallationToken(
         val token: String,
@@ -30,12 +31,19 @@ class GitHubAppAuth(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val client by lazy { HttpClient(CIO) }
+    private val clientLazy = lazy { HttpClient(CIO) }
+    private val client by clientLazy
 
     @Volatile
     private var cachedToken: String? = null
     @Volatile
     private var tokenExpiresAt: Long = 0
+
+    override fun close() {
+        if (clientLazy.isInitialized()) {
+            clientLazy.value.close()
+        }
+    }
 
     /**
      * Henter et gyldig installation token. Cacher og fornyer automatisk.

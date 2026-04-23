@@ -1,6 +1,7 @@
 package no.grunnmur
 
 import org.junit.jupiter.api.Test
+import java.io.Closeable
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -192,5 +193,15 @@ class GitHubIssueServiceTest {
         assertContains(updatedBody, "### Vedlegg")
         assertContains(updatedBody, "![abc-123.png](https://example.com/uploads/issues/biologportal/42/abc-123.png)")
         assertContains(updatedBody, "![def-456.jpg](https://example.com/uploads/issues/biologportal/42/def-456.jpg)")
+    }
+
+    @Test
+    fun `GitHubIssueService implementerer Closeable og close frigjoer HttpClient uten aa kaste`() {
+        val service = GitHubIssueService(config)
+        assertTrue(service is Closeable, "GitHubIssueService skal implementere java.io.Closeable")
+        // Skal ikke kaste selv om HttpClient ikke er initialisert (lazy)
+        service.close()
+        // Skal vaere idempotent — gjentatt close skal ikke kaste
+        service.close()
     }
 }
