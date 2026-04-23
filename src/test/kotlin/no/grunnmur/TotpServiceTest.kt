@@ -1,9 +1,14 @@
 package no.grunnmur
 
+import dev.turingcomplete.kotlinonetimepassword.HmacAlgorithm
+import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordConfig
+import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordGenerator
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 class TotpServiceTest {
 
@@ -12,6 +17,16 @@ class TotpServiceTest {
     private fun encryptedSecretFrom(secretBytes: ByteArray): String {
         val secret = Base64.getEncoder().encodeToString(secretBytes)
         return EncryptionUtils.encrypt(secret, testKey)
+    }
+
+    private fun generateTotpCode(secretBytes: ByteArray): String {
+        val config = TimeBasedOneTimePasswordConfig(
+            timeStep = 30,
+            timeStepUnit = TimeUnit.SECONDS,
+            codeDigits = 6,
+            hmacAlgorithm = HmacAlgorithm.SHA1
+        )
+        return TimeBasedOneTimePasswordGenerator(secretBytes, config).generate(Instant.now())
     }
 
     @Nested
@@ -59,6 +74,23 @@ class TotpServiceTest {
         fun `avviser ugyldig kryptert secret`() {
             assertFalse(TotpService.confirmTotp("ikke-gyldig-kryptering", testKey, "123456"))
         }
+
+        @Test
+        fun `godtar gyldig TOTP-kode`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+
+            assertTrue(TotpService.confirmTotp(encryptedSecret, testKey, code))
+        }
+
+        @Test
+        fun `avviser feil TOTP-kode`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+
+            assertFalse(TotpService.confirmTotp(encryptedSecret, testKey, "000000"))
+        }
     }
 
     @Nested
@@ -74,6 +106,23 @@ class TotpServiceTest {
         @Test
         fun `avviser ugyldig kryptert secret`() {
             assertFalse(TotpService.verifyTotp("ikke-gyldig", testKey, "123456"))
+        }
+
+        @Test
+        fun `produksjonsmodus avviser 000000`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+
+            assertFalse(TotpService.verifyTotp(encryptedSecret, testKey, "000000", devMode = false))
+        }
+
+        @Test
+        fun `godtar gyldig TOTP-kode`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code))
         }
     }
 
