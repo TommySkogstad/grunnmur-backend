@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.Closeable
 
 /**
  * Service for aa opprette GitHub Issues via API.
@@ -18,7 +19,7 @@ import kotlinx.serialization.json.Json
  * - **PAT**: Personlig access token (Config med token)
  * - **GitHub App**: Installation token via JWT (Config med appAuth)
  */
-class GitHubIssueService(private val config: Config) {
+class GitHubIssueService(private val config: Config) : Closeable {
 
     data class Config(
         val token: String? = null,
@@ -55,11 +56,18 @@ class GitHubIssueService(private val config: Config) {
             ?: throw IllegalStateException("GitHubIssueService: Verken appAuth eller token er konfigurert")
     }
 
-    private val client by lazy {
+    private val clientLazy = lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) {
                 json(this@GitHubIssueService.json)
             }
+        }
+    }
+    private val client by clientLazy
+
+    override fun close() {
+        if (clientLazy.isInitialized()) {
+            clientLazy.value.close()
         }
     }
 

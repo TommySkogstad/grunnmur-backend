@@ -2,6 +2,7 @@ package no.grunnmur
 
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.io.Closeable
 import java.util.Base64
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
@@ -111,6 +112,19 @@ class GitHubAppAuthTest {
             val auth = GitHubAppAuth("123", testPrivateKey, "456")
             val config = GitHubIssueService.Config(appAuth = auth, repo = "test/repo")
             assertEquals(auth, config.appAuth)
+        }
+    }
+
+    @Nested
+    inner class Lifecycle {
+
+        @Test
+        fun `GitHubAppAuth implementerer Closeable og close frigjoer HttpClient uten aa kaste`() {
+            val auth = GitHubAppAuth("123", testPrivateKey, "456")
+            assertTrue(auth is Closeable, "GitHubAppAuth skal implementere java.io.Closeable")
+            auth.close()
+            // Skal vaere idempotent
+            auth.close()
         }
     }
 }
