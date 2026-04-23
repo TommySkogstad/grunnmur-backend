@@ -288,7 +288,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 - **kotlinx-serialization-json**: 1.11.0 (compileOnly)
 - **Jakarta Mail**: 2.1.5 (compileOnly)
 - **Flyway**: 11.8.2 (compileOnly — pinnet pga bug i 11.20.3/12.x)
-- **kotlin-onetimepassword**: 2.4.1 (compileOnly)
+- **kotlin-onetimepassword**: 2.4.1 (compileOnly + testImplementation)
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 25
 - **Tester**: JUnit 5.14.3
