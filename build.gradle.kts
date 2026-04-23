@@ -69,6 +69,9 @@ dependencies {
     testImplementation("org.eclipse.angus:angus-mail:2.0.5")
     testImplementation("org.slf4j:slf4j-simple:2.0.17")
 
+    // TOTP (test — trenger implementasjon for å kjøre tester)
+    testImplementation("dev.turingcomplete:kotlin-onetimepassword:2.4.1")
+
     // Flyway (test) — matcher compileOnly
     testImplementation("org.flywaydb:flyway-core:11.8.2")
     testImplementation("org.flywaydb:flyway-database-postgresql:11.8.2")
