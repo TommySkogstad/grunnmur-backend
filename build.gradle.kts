@@ -76,7 +76,12 @@ dependencies {
     testImplementation("org.flywaydb:flyway-core:11.8.2")
     testImplementation("org.flywaydb:flyway-database-postgresql:11.8.2")
 
-    // H2 (test — in-memory database for Flyway-tester)
+    // Exposed (test — trenger implementasjon for å kjøre Exposed-baserte tester)
+    testImplementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    testImplementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    testImplementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
+
+    // H2 (test — in-memory database for Flyway- og Exposed-tester)
     testImplementation("com.h2database:h2:2.4.240")
 }
 
