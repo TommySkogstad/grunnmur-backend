@@ -373,6 +373,18 @@ Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
 ./gradlew test     # Kjoer tester
 ```
 
+## Versjonsstrategi
+
+`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (lo-finans, biologportal, 6810, styreportal) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
+
+`publishing`-blokken i `build.gradle.kts` eksisterer for fremtidig publisering til GitHub Packages, men er ikke i rutinemessig bruk. Versjonen bumpes kun manuelt ved breaking changes — ingen automatisk bump, ingen SNAPSHOT-konvensjon, ingen CHANGELOG.
+
+**Hvis rutinemessig publisering til GitHub Packages tas i bruk senere**, bytt til en av:
+- Dato-basert versjon: `version = "1.0.${LocalDate.now().format(YYYYMMDD)}"` (bumpes per release)
+- Git commit-hash suffix: `version = "1.0.0-${gitShortHash}"` (entydig per commit)
+
+Inntil da holdes versjonen fast. Dette er en bevisst avgjoerelse, ikke en glemt TODO.
+
 ## Viktig
 
 - Ved Dependabot-oppgraderinger: oppgrader grunnmur FOERST, deretter alle 4 apper til samme versjoner
