@@ -3,7 +3,7 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 
-Sist oppdatert: 2026-04-08
+Sist oppdatert: 2026-04-23
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -234,18 +234,20 @@ Dataklasser:
 - `SendResult(success: Boolean, messageId?, error?)`
 
 #### GitHubIssueService (`GitHubIssueService.kt`) — class
-GitHub API for issues. Stoetter PAT og GitHub App-autentisering. Saniterer all input via InputSanitizer.
+GitHub API for issues. Stoetter PAT og GitHub App-autentisering. Saniterer all input via InputSanitizer. **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
 
 - `createIssue(title, senderName, senderEmail, description, consoleLogs?, imageFilenames?, labels): GitHubIssueResponse` (suspend)
 - `updateIssueBody(issueNumber: Int, body: String)` (suspend)
 - `buildBody(senderName, senderEmail, description, consoleLogs?, imageFilenames?): String`
+- `close()` — lukker den interne HttpClient-instansen
 
 Config: `Config(token?, appAuth?, repo, uploadDir?, publicBaseUrl?)`
 
 #### GitHubAppAuth (`GitHubAppAuth.kt`) — class
-GitHub App JWT (RS256) autentisering med installation token-caching. Fornyer automatisk 5 min foer utloep.
+GitHub App JWT (RS256) autentisering med installation token-caching. Fornyer automatisk 5 min foer utloep. **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
 
 - `getToken(): String` (suspend) — returnerer gyldig installation token
+- `close()` — lukker den interne HttpClient-instansen
 
 Konstruktoer: `GitHubAppAuth(appId: String, privateKeyPem: String, installationId: String)`
 
