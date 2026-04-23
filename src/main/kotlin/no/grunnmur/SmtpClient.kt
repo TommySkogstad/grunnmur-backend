@@ -138,6 +138,8 @@ class SmtpClient(
     @Volatile
     private var lastSendTime = 0L
 
+    private val session: Session by lazy { createSession() }
+
     /**
      * Sender en e-post.
      *
@@ -182,7 +184,6 @@ class SmtpClient(
         }
 
         return try {
-            val session = createSession()
             val mimeMessage = buildMimeMessage(session, message, customMessageId)
 
             sendLock.withLock {
