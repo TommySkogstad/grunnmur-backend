@@ -222,7 +222,7 @@ Felt: `OSLO_ZONE: ZoneId`, `isoDateTime: DateTimeFormatter`, `isoDate: DateTimeF
 ### Tjenester
 
 #### SmtpClient (`SmtpClient.kt`) — class
-Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende).
+Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende). **SMTP Session er cached og gjenbrukt** (ikke opprettet paa nytt per sending).
 
 - `send(message: EmailMessage, forceDelivery: Boolean = false): SendResult`
 - `sendWithMessageId(message: EmailMessage, messageId: String, forceDelivery: Boolean = false): SendResult`
