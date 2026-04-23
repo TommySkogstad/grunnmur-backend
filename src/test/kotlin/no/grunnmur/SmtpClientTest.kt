@@ -270,6 +270,24 @@ class SmtpClientTest {
     }
 
     @Nested
+    inner class SessionCaching {
+
+        @Test
+        fun `samme Session-instans gjenbrukes paa tvers av sendinger`() {
+            val (client, messages) = captureClient()
+
+            client.send(EmailMessage(to = "a@example.com", subject = "1", body = "1"))
+            client.send(EmailMessage(to = "b@example.com", subject = "2", body = "2"))
+
+            assertEquals(2, messages.size)
+            assertTrue(
+                messages[0].session === messages[1].session,
+                "Session skal gjenbrukes (samme instans) for aa unngaa unodvendig overhead"
+            )
+        }
+    }
+
+    @Nested
     inner class RateLimiting {
 
         @Test
