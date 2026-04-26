@@ -1,6 +1,16 @@
 name: Fullstendig testsuite
 
 on:
+  push:
+    branches: [main, 'auto/**']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'docker-compose*.yml'
+      - '.env*'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     branches: [main]
