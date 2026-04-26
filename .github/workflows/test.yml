@@ -11,6 +11,16 @@ on:
       - '.env*'
       - 'LICENSE'
       - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'docker-compose*.yml'
+      - '.env*'
+      - 'LICENSE'
+      - '.gitignore'
 
 concurrency:
   group: ci-${{ github.ref }}
