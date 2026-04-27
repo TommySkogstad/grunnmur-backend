@@ -32,7 +32,7 @@ permissions:
 jobs:
   backend:
     name: Backend kompilering
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, nuc]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
@@ -40,12 +40,5 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-      - uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
       - name: Kompiler backend
         run: ./gradlew compileKotlin compileTestKotlin --no-daemon
