@@ -129,7 +129,7 @@ class GitHubAppAuthTest {
         @Test
         fun `parseExpiresAt kaster exception ved ugyldig format`() {
             val auth = GitHubAppAuth("123", testPrivateKey, "456")
-            assertFailsWith<Exception> {
+            assertFailsWith<java.time.format.DateTimeParseException> {
                 auth.parseExpiresAt("ugyldig-dato")
             }
         }
