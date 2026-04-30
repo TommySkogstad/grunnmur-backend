@@ -112,7 +112,7 @@ AES-256-GCM-kryptering. Nokler: 64 hex-tegn (32 bytes). Output: Base64(IV || cip
 - `base64KeyToHex(base64Key: String): String` — for migrering
 
 #### TotpService (`TotpService.kt`) — object
-TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, +-2 vinduer toleranse. Bruker EncryptionUtils for kryptering. Dev-kode: "000000".
+TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, +-2 vinduer toleranse. Bruker EncryptionUtils for kryptering. Dev-kode: "123456".
 
 - `setupTotp(encryptionKey: String, issuer: String, accountName: String): TotpSetupResult` — genererer hemmelighet + QR-URI
 - `confirmTotp(encryptedSecret: String, encryptionKey: String, code: String): Boolean`
