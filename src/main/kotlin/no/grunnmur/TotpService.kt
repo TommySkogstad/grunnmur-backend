@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 object TotpService {
     private val secureRandom = SecureRandom()
     private const val SECRET_BYTES = 20
-    private const val DEV_TOTP_CODE = "000000"
+    private const val DEV_TOTP_CODE = "123456"
     private const val TIME_STEP_SECONDS = 30
     private const val CODE_DIGITS = 6
     private const val WINDOW_SIZE = 2 // ±2 vinduer (2 min toleranse)
@@ -65,7 +65,7 @@ object TotpService {
      * @param encryptedSecret Kryptert hemmelighet fra databasen
      * @param encryptionKey 64 hex-tegn AES-256-nokkel
      * @param code 6-sifret TOTP-kode fra autentiserings-appen
-     * @param devMode Hvis true, aksepteres "000000" alltid (for utvikling)
+     * @param devMode Hvis true, aksepteres "123456" alltid (for utvikling — samme som OtpUtils.DEV_CODE)
      * @return true hvis koden er gyldig
      */
     fun verifyTotp(
