@@ -72,7 +72,11 @@ class GitHubAppAuth(
 
         val tokenResponse = json.decodeFromString<InstallationToken>(response.bodyAsText())
         cachedToken = tokenResponse.token
-        tokenExpiresAt = parseExpiresAt(tokenResponse.expires_at)
+        tokenExpiresAt = try {
+            parseExpiresAt(tokenResponse.expires_at)
+        } catch (e: java.time.format.DateTimeParseException) {
+            throw RuntimeException("Ugyldig expires_at-format fra GitHub: '${tokenResponse.expires_at}'", e)
+        }
         return tokenResponse.token
     }
 
