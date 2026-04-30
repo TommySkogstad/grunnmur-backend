@@ -116,6 +116,26 @@ class GitHubAppAuthTest {
     }
 
     @Nested
+    inner class TokenUtlopsParsing {
+
+        @Test
+        fun `parseExpiresAt returnerer korrekt epochMillis for ISO-8601 timestamp`() {
+            val auth = GitHubAppAuth("123", testPrivateKey, "456")
+            val expiresAt = "2026-04-30T15:00:00Z"
+            val expected = java.time.Instant.parse(expiresAt).toEpochMilli()
+            assertEquals(expected, auth.parseExpiresAt(expiresAt))
+        }
+
+        @Test
+        fun `parseExpiresAt kaster exception ved ugyldig format`() {
+            val auth = GitHubAppAuth("123", testPrivateKey, "456")
+            assertFailsWith<Exception> {
+                auth.parseExpiresAt("ugyldig-dato")
+            }
+        }
+    }
+
+    @Nested
     inner class Lifecycle {
 
         @Test
