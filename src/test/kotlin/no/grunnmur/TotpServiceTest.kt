@@ -96,11 +96,19 @@ class TotpServiceTest {
     @Nested
     inner class VerifyTotp {
         @Test
-        fun `dev-modus godtar 000000`() {
+        fun `dev-modus godtar 123456`() {
             val secretBytes = ByteArray(20) { it.toByte() }
             val encryptedSecret = encryptedSecretFrom(secretBytes)
 
-            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, "000000", devMode = true))
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, "123456", devMode = true))
+        }
+
+        @Test
+        fun `dev-modus avviser 000000`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+
+            assertFalse(TotpService.verifyTotp(encryptedSecret, testKey, "000000", devMode = true))
         }
 
         @Test
