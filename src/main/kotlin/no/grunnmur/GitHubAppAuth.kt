@@ -72,10 +72,12 @@ class GitHubAppAuth(
 
         val tokenResponse = json.decodeFromString<InstallationToken>(response.bodyAsText())
         cachedToken = tokenResponse.token
-        // Parse ISO-8601 til millis — forenklet, bruker 55 min fra naa som fallback
-        tokenExpiresAt = System.currentTimeMillis() + 55 * 60 * 1000
+        tokenExpiresAt = parseExpiresAt(tokenResponse.expires_at)
         return tokenResponse.token
     }
+
+    internal fun parseExpiresAt(expiresAt: String): Long =
+        java.time.Instant.parse(expiresAt).toEpochMilli()
 
     /**
      * Oppretter en JWT signert med RS256 for GitHub App-autentisering.
