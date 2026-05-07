@@ -228,7 +228,7 @@ Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), ve
 - `sendWithMessageId(message: EmailMessage, messageId: String, forceDelivery: Boolean = false): SendResult`
 
 **SmtpConfig companion function:**
-- `SmtpConfig.fromEnv(getEnv: (String) -> String? = System::getenv): SmtpConfig` — leser config fra miljøvariabler (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_FROM_NAME, SMTP_REQUIRE_AUTH, SMTP_STARTTLS, SMTP_DEV_MODE, SMTP_TIMEOUT_MS, SMTP_MIN_INTERVAL_MS). SMTP_STARTTLS kan settes uavhengig av SMTP_REQUIRE_AUTH for å håndtere self-signed sertifikater på Postfix.
+- `SmtpConfig.fromEnv(getEnv: (String) -> String? = System::getenv): SmtpConfig` — leser config fra miljøvariabler (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_FROM_NAME, SMTP_REQUIRE_AUTH, SMTP_STARTTLS, SMTP_DEV_MODE, SMTP_TIMEOUT_MS, SMTP_MIN_INTERVAL_MS). Numeriske felt (SMTP_PORT, SMTP_TIMEOUT_MS, SMTP_MIN_INTERVAL_MS) valideres med `toIntOrNull()`/`toLongOrNull()` og gir beskrivende feilmeldinger ved ugyldig input. SMTP_STARTTLS kan settes uavhengig av SMTP_REQUIRE_AUTH for å håndtere self-signed sertifikater på Postfix.
 
 Dataklasser:
 - `SmtpConfig(host, port = 587, user, password, from, fromName, requireAuth = true, startTls = true, devMode = false, timeoutMs = 10000, minIntervalMs = 100)`
