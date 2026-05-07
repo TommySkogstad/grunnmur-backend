@@ -398,13 +398,14 @@ class SmtpClientTest {
 
             assertEquals("", config.fromName)
             assertTrue(config.requireAuth)
+            assertTrue(config.startTls)
             assertFalse(config.devMode)
             assertEquals(10_000, config.timeoutMs)
             assertEquals(100L, config.minIntervalMs)
         }
 
         @Test
-        fun `send med requireAuth false fungerer uten STARTTLS`() {
+        fun `send med requireAuth false sender uten autentisering`() {
             val noAuthConfig = testConfig.copy(requireAuth = false)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(noAuthConfig) { mime -> messages.add(mime) }
@@ -415,8 +416,36 @@ class SmtpClientTest {
                 body = "Din kode er 123456"
             ))
 
-            assertTrue(result.success, "Skal kunne sende uten auth/STARTTLS")
+            assertTrue(result.success, "Skal kunne sende uten autentisering")
             assertEquals(1, messages.size)
+        }
+
+        @Test
+        fun `STARTTLS er aktivert uavhengig av requireAuth`() {
+            val noAuthConfig = testConfig.copy(requireAuth = false)
+            val messages = mutableListOf<MimeMessage>()
+            val client = SmtpClient(noAuthConfig) { mime -> messages.add(mime) }
+
+            client.send(EmailMessage(to = "biolog@example.com", subject = "Test", body = "Test"))
+
+            val sessionProps = messages.first().session.properties
+            assertEquals("true", sessionProps["mail.smtp.starttls.enable"],
+                "STARTTLS skal vaere aktivert selv naar requireAuth=false")
+            assertEquals("false", sessionProps["mail.smtp.auth"],
+                "Auth skal vaere deaktivert naar requireAuth=false")
+        }
+
+        @Test
+        fun `startTls false deaktiverer STARTTLS uavhengig av requireAuth`() {
+            val noTlsConfig = testConfig.copy(startTls = false)
+            val messages = mutableListOf<MimeMessage>()
+            val client = SmtpClient(noTlsConfig) { mime -> messages.add(mime) }
+
+            client.send(EmailMessage(to = "relay@example.com", subject = "Test", body = "Test"))
+
+            val sessionProps = messages.first().session.properties
+            assertEquals("false", sessionProps["mail.smtp.starttls.enable"],
+                "STARTTLS skal vaere deaktivert naar startTls=false")
         }
 
         @Test

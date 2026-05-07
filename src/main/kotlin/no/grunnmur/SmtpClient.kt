@@ -21,6 +21,7 @@ import kotlin.concurrent.withLock
  * @param from Avsender-e-postadresse
  * @param fromName Avsendernavn (vises i e-postklient)
  * @param requireAuth Om SMTP-autentisering kreves
+ * @param startTls Om STARTTLS skal aktiveres (uavhengig av requireAuth, default true)
  * @param devMode I dev-modus logges e-post i stedet for aa sendes
  * @param timeoutMs Timeout for SMTP-tilkobling og sending (default 10s)
  * @param minIntervalMs Minimum intervall mellom sendinger i ms (rate limiting, default 100ms)
@@ -33,6 +34,7 @@ data class SmtpConfig(
     val from: String,
     val fromName: String = "",
     val requireAuth: Boolean = true,
+    val startTls: Boolean = true,
     val devMode: Boolean = false,
     val timeoutMs: Int = 10_000,
     val minIntervalMs: Long = 100
@@ -218,7 +220,7 @@ class SmtpClient(
             put("mail.smtp.host", config.host)
             put("mail.smtp.port", config.port.toString())
             put("mail.smtp.auth", config.requireAuth.toString())
-            put("mail.smtp.starttls.enable", config.requireAuth.toString())
+            put("mail.smtp.starttls.enable", config.startTls.toString())
             put("mail.smtp.connectiontimeout", config.timeoutMs.toString())
             put("mail.smtp.timeout", config.timeoutMs.toString())
             put("mail.smtp.writetimeout", config.timeoutMs.toString())
