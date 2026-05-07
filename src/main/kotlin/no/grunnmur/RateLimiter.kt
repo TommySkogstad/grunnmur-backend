@@ -38,19 +38,24 @@ class RateLimiter(
         val now = System.currentTimeMillis()
         cleanup(now)
 
-        val record = attempts[key]
-
-        if (record == null || now - record.windowStart > windowMs) {
-            attempts[key] = AttemptRecord(1, now)
-            return true
+        var allowed = false
+        attempts.compute(key) { _, record ->
+            when {
+                record == null || now - record.windowStart > windowMs -> {
+                    allowed = true
+                    AttemptRecord(1, now)
+                }
+                record.count >= maxAttempts -> {
+                    allowed = false
+                    record
+                }
+                else -> {
+                    allowed = true
+                    record.copy(count = record.count + 1)
+                }
+            }
         }
-
-        if (record.count >= maxAttempts) {
-            return false
-        }
-
-        attempts[key] = record.copy(count = record.count + 1)
-        return true
+        return allowed
     }
 
     /**
@@ -103,17 +108,17 @@ class RateLimiter(
      */
     fun size(): Int = attempts.size
 
-    @Synchronized
     private fun cleanup(now: Long) {
         if (now - lastCleanup < cleanupIntervalMs) return
-        lastCleanup = now
-
-        attempts.entries.removeIf { now - it.value.windowStart > windowMs }
-
-        if (attempts.size > maxEntries) {
-            val sorted = attempts.entries.sortedBy { it.value.windowStart }
-            val toRemove = sorted.take(attempts.size - maxEntries)
-            toRemove.forEach { attempts.remove(it.key) }
+        synchronized(this) {
+            if (now - lastCleanup < cleanupIntervalMs) return
+            attempts.entries.removeIf { now - it.value.windowStart > windowMs }
+            if (attempts.size > maxEntries) {
+                val sorted = attempts.entries.sortedBy { it.value.windowStart }
+                val toRemove = sorted.take(attempts.size - maxEntries)
+                toRemove.forEach { attempts.remove(it.key) }
+            }
+            lastCleanup = now
         }
     }
 }

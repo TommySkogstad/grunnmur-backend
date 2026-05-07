@@ -1,6 +1,10 @@
 package no.grunnmur
 
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -99,6 +103,31 @@ class RateLimiterTest {
 
         limiter.isAllowed("key1")
         assertEquals(0, limiter.remainingAttempts("key1"))
+    }
+
+    @Test
+    fun `isAllowed er atomisk under parallell last`() {
+        val maxAttempts = 100
+        val threadCount = 50
+        val callsPerThread = 20
+        val limiter = RateLimiter(maxAttempts = maxAttempts, windowMs = 60_000)
+        val executor = Executors.newFixedThreadPool(threadCount)
+        val barrier = CyclicBarrier(threadCount)
+        val granted = AtomicInteger(0)
+
+        val futures = (1..threadCount).map {
+            executor.submit {
+                barrier.await()
+                repeat(callsPerThread) {
+                    if (limiter.isAllowed("shared-key")) granted.incrementAndGet()
+                }
+            }
+        }
+        futures.forEach { it.get(10, TimeUnit.SECONDS) }
+        executor.shutdown()
+
+        assertEquals(maxAttempts, granted.get(),
+            "isAllowed skal aldri tillate flere enn maxAttempts under parallell last")
     }
 
     @Test
