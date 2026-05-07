@@ -38,7 +38,23 @@ data class SmtpConfig(
     val devMode: Boolean = false,
     val timeoutMs: Int = 10_000,
     val minIntervalMs: Long = 100
-)
+) {
+    companion object {
+        fun fromEnv(getEnv: (String) -> String? = System::getenv): SmtpConfig = SmtpConfig(
+            host = requireNotNull(getEnv("SMTP_HOST")) { "SMTP_HOST er påkrevd" },
+            port = getEnv("SMTP_PORT")?.toInt() ?: 587,
+            user = requireNotNull(getEnv("SMTP_USER")) { "SMTP_USER er påkrevd" },
+            password = requireNotNull(getEnv("SMTP_PASSWORD")) { "SMTP_PASSWORD er påkrevd" },
+            from = requireNotNull(getEnv("SMTP_FROM")) { "SMTP_FROM er påkrevd" },
+            fromName = getEnv("SMTP_FROM_NAME") ?: "",
+            requireAuth = getEnv("SMTP_REQUIRE_AUTH")?.toBoolean() ?: true,
+            startTls = getEnv("SMTP_STARTTLS")?.toBoolean() ?: true,
+            devMode = getEnv("SMTP_DEV_MODE")?.toBoolean() ?: false,
+            timeoutMs = getEnv("SMTP_TIMEOUT_MS")?.toInt() ?: 10_000,
+            minIntervalMs = getEnv("SMTP_MIN_INTERVAL_MS")?.toLong() ?: 100
+        )
+    }
+}
 
 /**
  * E-postmelding som skal sendes.

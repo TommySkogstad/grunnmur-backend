@@ -5,10 +5,11 @@ import jakarta.mail.internet.MimeMultipart
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.test.assertFalse
 
 class SmtpClientTest {
 
@@ -380,6 +381,69 @@ class SmtpClientTest {
             val mixed = mime.content as MimeMultipart
             assertTrue(mixed.contentType.contains("mixed"))
             assertEquals(2, mixed.count, "Skal ha body-del + 1 vedlegg")
+        }
+    }
+
+    @Nested
+    inner class FromEnv {
+
+        private val baseEnv = mapOf(
+            "SMTP_HOST" to "postfix",
+            "SMTP_USER" to "bruker",
+            "SMTP_PASSWORD" to "passord",
+            "SMTP_FROM" to "noreply@example.com"
+        )
+
+        @Test
+        fun `fromEnv returnerer startTls true som default`() {
+            val config = SmtpConfig.fromEnv { baseEnv[it] }
+            assertTrue(config.startTls, "startTls skal vaere true naar SMTP_STARTTLS ikke er satt")
+        }
+
+        @Test
+        fun `fromEnv leser SMTP_STARTTLS false`() {
+            val env = baseEnv + mapOf("SMTP_STARTTLS" to "false")
+            val config = SmtpConfig.fromEnv { env[it] }
+            assertFalse(config.startTls, "startTls skal vaere false naar SMTP_STARTTLS=false")
+        }
+
+        @Test
+        fun `fromEnv leser SMTP_STARTTLS true eksplisitt`() {
+            val env = baseEnv + mapOf("SMTP_STARTTLS" to "true")
+            val config = SmtpConfig.fromEnv { env[it] }
+            assertTrue(config.startTls, "startTls skal vaere true naar SMTP_STARTTLS=true")
+        }
+
+        @Test
+        fun `fromEnv kaster feil naar paakrevd env-var mangler`() {
+            val incompleteEnv = mapOf("SMTP_HOST" to "postfix")
+            assertFailsWith<IllegalArgumentException> {
+                SmtpConfig.fromEnv { incompleteEnv[it] }
+            }
+        }
+
+        @Test
+        fun `fromEnv leser alle SMTP-env-vars`() {
+            val env = baseEnv + mapOf(
+                "SMTP_PORT" to "25",
+                "SMTP_FROM_NAME" to "Min App",
+                "SMTP_REQUIRE_AUTH" to "false",
+                "SMTP_DEV_MODE" to "true",
+                "SMTP_TIMEOUT_MS" to "5000",
+                "SMTP_MIN_INTERVAL_MS" to "200"
+            )
+            val config = SmtpConfig.fromEnv { env[it] }
+
+            assertEquals("postfix", config.host)
+            assertEquals(25, config.port)
+            assertEquals("bruker", config.user)
+            assertEquals("passord", config.password)
+            assertEquals("noreply@example.com", config.from)
+            assertEquals("Min App", config.fromName)
+            assertFalse(config.requireAuth)
+            assertTrue(config.devMode)
+            assertEquals(5000, config.timeoutMs)
+            assertEquals(200L, config.minIntervalMs)
         }
     }
 
