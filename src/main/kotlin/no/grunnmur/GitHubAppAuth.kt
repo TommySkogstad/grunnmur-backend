@@ -5,6 +5,8 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.Closeable
@@ -18,7 +20,7 @@ import java.util.Base64
  * Installation tokens varer 1 time. Denne klassen cacher tokenet og
  * fornyer det automatisk 5 minutter foer utloep.
  */
-class GitHubAppAuth(
+open class GitHubAppAuth(
     private val appId: String,
     private val privateKeyPem: String,
     private val installationId: String
@@ -34,10 +36,12 @@ class GitHubAppAuth(
     private val clientLazy = lazy { HttpClient(CIO) }
     private val client by clientLazy
 
+    private val refreshMutex = Mutex()
+
     @Volatile
-    private var cachedToken: String? = null
+    protected var cachedToken: String? = null
     @Volatile
-    private var tokenExpiresAt: Long = 0
+    protected var tokenExpiresAt: Long = 0
 
     override fun close() {
         if (clientLazy.isInitialized()) {
@@ -47,17 +51,18 @@ class GitHubAppAuth(
 
     /**
      * Henter et gyldig installation token. Cacher og fornyer automatisk.
+     * Mutex sikrer at kun én coroutine kaller refreshToken() selv under concurrent last.
      */
     suspend fun getToken(): String {
         val now = System.currentTimeMillis()
-        val cached = cachedToken
-        if (cached != null && now < tokenExpiresAt - 300_000) {
-            return cached
+        cachedToken?.takeIf { now < tokenExpiresAt - 300_000 }?.let { return it }
+        return refreshMutex.withLock {
+            val nowInner = System.currentTimeMillis()
+            cachedToken?.takeIf { nowInner < tokenExpiresAt - 300_000 } ?: refreshToken()
         }
-        return refreshToken()
     }
 
-    private suspend fun refreshToken(): String {
+    protected open suspend fun refreshToken(): String {
         val jwt = createJwt()
 
         val response = client.post("https://api.github.com/app/installations/$installationId/access_tokens") {
