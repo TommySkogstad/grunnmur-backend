@@ -297,16 +297,16 @@ val result = service.createIssue(title = "Bug", senderName = "Ola", senderEmail 
 | `buildBody` | `(senderName, senderEmail, description, ...): String` | Bygger markdown-body |
 
 #### GitHubAppAuth (`GitHubAppAuth.kt`)
-GitHub App-autentisering med JWT (RS256) og automatisk caching av installation tokens.
+GitHub App-autentisering med JWT (RS256), automatisk caching av installation tokens og **thread-safe token-refresh** via Mutex (double-checked locking).
 
 ```kotlin
 val auth = GitHubAppAuth(appId = "12345", privateKeyPem = pemKey, installationId = "67890")
-val token = auth.getToken() // suspend — cacher og fornyer automatisk
+val token = auth.getToken() // suspend — cacher og fornyer automatisk, atomisk under parallell last
 ```
 
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
-| `getToken` | `(): String` (suspend) | Henter gyldig installation token |
+| `getToken` | `(): String` (suspend) | Henter gyldig installation token, thread-safe |
 
 #### GitHubIssueRoutes (`GitHubIssueRoutes.kt`)
 Ktor-ruter for issue-oppretting (multipart med bilder) og GitHub webhook-mottak med HMAC-SHA256-signaturverifisering.

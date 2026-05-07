@@ -244,13 +244,15 @@ GitHub API for issues. Stoetter PAT og GitHub App-autentisering. Saniterer all i
 Config: `Config(token?, appAuth?, repo, uploadDir?, publicBaseUrl?)`
 
 #### GitHubAppAuth (`GitHubAppAuth.kt`) — class
-GitHub App JWT (RS256) autentisering med installation token-caching. Leser faktisk `expires_at` fra GitHub API-respons og fornyer automatisk 5 min foer utloep. **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
+GitHub App JWT (RS256) autentisering med installation token-caching. Leser faktisk `expires_at` fra GitHub API-respons og fornyer automatisk 5 min foer utloep. **Atomisk token-refresh** via Mutex sikrer at kun én coroutine kaller GitHub API selv under parallell load (double-checked locking). **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
 
-- `getToken(): String` (suspend) — returnerer gyldig installation token, cacher basert paa faktisk utløpstid fra API
+- `getToken(): String` (suspend) — returnerer gyldig installation token, cacher basert paa faktisk utløpstid fra API. Thread-safe.
 - `parseExpiresAt(expiresAt: String): Long` — parser ISO-8601 `expires_at` fra GitHub til millisekunder siden epoch
 - `close()` — lukker den interne HttpClient-instansen
 
 Konstruktoer: `GitHubAppAuth(appId: String, privateKeyPem: String, installationId: String)`
+
+Merk: Klassen er `open` og har `protected` cache-felt for aa tillate testing via subclass-overriding av `refreshToken()`.
 
 #### GitHubIssueRoutes (`GitHubIssueRoutes.kt`) — extension function paa Route
 Registrerer ruter for issue-opprettelse og GitHub webhook.
