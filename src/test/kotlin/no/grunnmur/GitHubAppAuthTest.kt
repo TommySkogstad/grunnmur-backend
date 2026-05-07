@@ -1,9 +1,13 @@
 package no.grunnmur
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.Closeable
 import java.util.Base64
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
@@ -144,6 +148,32 @@ class GitHubAppAuthTest {
             assertTrue(auth is Closeable, "GitHubAppAuth skal implementere java.io.Closeable")
             auth.close()
             // Skal vaere idempotent
+            auth.close()
+        }
+    }
+
+    @Nested
+    inner class ConcurrentTokenCaching {
+
+        @Test
+        fun `getToken under concurrent last kaller refreshToken kun en gang`() = runBlocking {
+            val refreshCount = AtomicInteger(0)
+
+            val auth = object : GitHubAppAuth("123", testPrivateKey, "456") {
+                override suspend fun refreshToken(): String {
+                    refreshCount.incrementAndGet()
+                    delay(20) // la andre coroutines nå sjekken før token er satt
+                    val token = "mock-token"
+                    cachedToken = token
+                    tokenExpiresAt = System.currentTimeMillis() + 3_600_000
+                    return token
+                }
+            }
+
+            val jobs = (1..10).map { launch { auth.getToken() } }
+            jobs.forEach { it.join() }
+
+            assertEquals(1, refreshCount.get(), "refreshToken() skal kalles nøyaktig én gang under concurrent last, ble kalt ${refreshCount.get()} ganger")
             auth.close()
         }
     }
