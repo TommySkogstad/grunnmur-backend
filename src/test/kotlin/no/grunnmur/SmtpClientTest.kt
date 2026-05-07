@@ -513,6 +513,32 @@ class SmtpClientTest {
         }
 
         @Test
+        fun `startTls true setter starttls required til true`() {
+            val tlsConfig = testConfig.copy(startTls = true)
+            val messages = mutableListOf<MimeMessage>()
+            val client = SmtpClient(tlsConfig) { mime -> messages.add(mime) }
+
+            client.send(EmailMessage(to = "ekstern@example.com", subject = "Test", body = "Test"))
+
+            val sessionProps = messages.first().session.properties
+            assertEquals("true", sessionProps["mail.smtp.starttls.required"],
+                "STARTTLS required skal vaere true for aa hindre fallback til ukryptert")
+        }
+
+        @Test
+        fun `startTls false setter starttls required til false`() {
+            val noTlsConfig = testConfig.copy(startTls = false)
+            val messages = mutableListOf<MimeMessage>()
+            val client = SmtpClient(noTlsConfig) { mime -> messages.add(mime) }
+
+            client.send(EmailMessage(to = "intern@example.com", subject = "Test", body = "Test"))
+
+            val sessionProps = messages.first().session.properties
+            assertEquals("false", sessionProps["mail.smtp.starttls.required"],
+                "STARTTLS required skal vaere false naar startTls=false (intern postfix)")
+        }
+
+        @Test
         fun `EmailAttachment equals og hashCode fungerer med ByteArray`() {
             val a = EmailAttachment("test.txt", "hello".toByteArray(), "text/plain")
             val b = EmailAttachment("test.txt", "hello".toByteArray(), "text/plain")
