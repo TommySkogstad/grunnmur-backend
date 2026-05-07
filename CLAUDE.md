@@ -3,7 +3,7 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av lo-finans, biologportal, 6810 og summa-summarum.
 
-Sist oppdatert: 2026-04-23
+Sist oppdatert: 2026-05-07
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -25,13 +25,13 @@ install(GrunnmurCsrf) {
 Eksporterer: `GrunnmurCsrf` (plugin), `CsrfConfig` (class)
 
 #### RateLimiter (`RateLimiter.kt`) — class
-In-memory sliding window rate limiter. Traadsikker (ConcurrentHashMap). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
+In-memory sliding window rate limiter. Atomisk sjekk+oppdatering via `compute()` (garantert ikke overstige maxAttempts under parallell load). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
 
 ```kotlin
 val limiter = RateLimiter(maxAttempts = 5, windowMs = 300_000, maxEntries = 10_000)
 ```
 
-- `isAllowed(key: String): Boolean` — sjekker og registrerer
+- `isAllowed(key: String): Boolean` — atomisk sjekk og registrering
 - `reset(key: String)` — nullstiller (etter vellykket login)
 - `remainingAttempts(key: String): Int`
 - `retryAfterSeconds(key: String): Long?` — sekunder til vindu utloeper (null hvis ikke blokkert)
