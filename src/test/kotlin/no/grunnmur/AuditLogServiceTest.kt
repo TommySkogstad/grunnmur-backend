@@ -230,6 +230,32 @@ class AuditLogServiceTest {
         }
 
         @Test
+        fun `startDate inkluderer post klokken 00 30 Oslo-tid paa filtrert dato`() {
+            val osloDate = java.time.LocalDate.of(2026, 5, 7)
+            val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
+            insertWithCreatedAt(1, "TIDLIG_MORGEN", "T", startOfDayOslo.plusMinutes(30))
+            insertWithCreatedAt(2, "DAGEN_FOR", "T", startOfDayOslo.minusMinutes(30))
+
+            val result = service.findAll(startDate = "2026-05-07")
+
+            assertEquals(1, result.size)
+            assertEquals("TIDLIG_MORGEN", result[0].action)
+        }
+
+        @Test
+        fun `endDate inkluderer post klokken 23 30 Oslo-tid paa filtrert dato`() {
+            val osloDate = java.time.LocalDate.of(2026, 5, 7)
+            val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
+            insertWithCreatedAt(1, "SEN_KVELD", "T", startOfDayOslo.plusHours(23).plusMinutes(30))
+            insertWithCreatedAt(2, "NESTE_DAG", "T", startOfDayOslo.plusDays(1).plusMinutes(30))
+
+            val result = service.findAll(endDate = "2026-05-07")
+
+            assertEquals(1, result.size)
+            assertEquals("SEN_KVELD", result[0].action)
+        }
+
+        @Test
         fun `findAll ignorerer ugyldig datoformat og returnerer alle`() {
             service.log(userId = 1, action = "A", entityType = "T")
             service.log(userId = 2, action = "B", entityType = "T")
