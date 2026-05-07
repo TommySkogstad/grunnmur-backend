@@ -121,13 +121,14 @@ class AuditLogService {
         userId?.let { query.andWhere { AuditLogs.userId eq it } }
         startDate?.let { dateStr ->
             parseLocalDate(dateStr)?.let { date ->
-                val startDateTime = java.time.LocalDateTime.of(date, java.time.LocalTime.MIN)
+                val startDateTime = date.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
                 query.andWhere { AuditLogs.createdAt greaterEq startDateTime }
             }
         }
         endDate?.let { dateStr ->
             parseLocalDate(dateStr)?.let { date ->
-                val endDateTime = java.time.LocalDateTime.of(date, java.time.LocalTime.MAX)
+                val endDateTime = date.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
+                    .with(java.time.LocalTime.MAX)
                 query.andWhere { AuditLogs.createdAt lessEq endDateTime }
             }
         }
