@@ -42,7 +42,9 @@ data class SmtpConfig(
     companion object {
         fun fromEnv(getEnv: (String) -> String? = System::getenv): SmtpConfig = SmtpConfig(
             host = requireNotNull(getEnv("SMTP_HOST")) { "SMTP_HOST er påkrevd" },
-            port = getEnv("SMTP_PORT")?.toInt() ?: 587,
+            port = getEnv("SMTP_PORT")?.let {
+                it.toIntOrNull() ?: error("SMTP_PORT må være et heltall, fikk: '$it'")
+            } ?: 587,
             user = requireNotNull(getEnv("SMTP_USER")) { "SMTP_USER er påkrevd" },
             password = requireNotNull(getEnv("SMTP_PASSWORD")) { "SMTP_PASSWORD er påkrevd" },
             from = requireNotNull(getEnv("SMTP_FROM")) { "SMTP_FROM er påkrevd" },
@@ -50,8 +52,12 @@ data class SmtpConfig(
             requireAuth = getEnv("SMTP_REQUIRE_AUTH")?.toBoolean() ?: true,
             startTls = getEnv("SMTP_STARTTLS")?.toBoolean() ?: true,
             devMode = getEnv("SMTP_DEV_MODE")?.toBoolean() ?: false,
-            timeoutMs = getEnv("SMTP_TIMEOUT_MS")?.toInt() ?: 10_000,
-            minIntervalMs = getEnv("SMTP_MIN_INTERVAL_MS")?.toLong() ?: 100
+            timeoutMs = getEnv("SMTP_TIMEOUT_MS")?.let {
+                it.toIntOrNull() ?: error("SMTP_TIMEOUT_MS må være et heltall, fikk: '$it'")
+            } ?: 10_000,
+            minIntervalMs = getEnv("SMTP_MIN_INTERVAL_MS")?.let {
+                it.toLongOrNull() ?: error("SMTP_MIN_INTERVAL_MS må være et heltall, fikk: '$it'")
+            } ?: 100
         )
     }
 }

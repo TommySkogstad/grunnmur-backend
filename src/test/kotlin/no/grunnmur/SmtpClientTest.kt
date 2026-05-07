@@ -423,6 +423,36 @@ class SmtpClientTest {
         }
 
         @Test
+        fun `fromEnv kaster beskrivende feil ved ugyldig SMTP_PORT`() {
+            val env = baseEnv + mapOf("SMTP_PORT" to "abc")
+            val ex = assertFailsWith<IllegalStateException> {
+                SmtpConfig.fromEnv { env[it] }
+            }
+            assertTrue(ex.message!!.contains("SMTP_PORT"), "Feilmelding skal nevne variabelnavnet")
+            assertTrue(ex.message!!.contains("abc"), "Feilmelding skal vise den ugyldige verdien")
+        }
+
+        @Test
+        fun `fromEnv kaster beskrivende feil ved ugyldig SMTP_TIMEOUT_MS`() {
+            val env = baseEnv + mapOf("SMTP_TIMEOUT_MS" to "ikke-et-tall")
+            val ex = assertFailsWith<IllegalStateException> {
+                SmtpConfig.fromEnv { env[it] }
+            }
+            assertTrue(ex.message!!.contains("SMTP_TIMEOUT_MS"), "Feilmelding skal nevne variabelnavnet")
+            assertTrue(ex.message!!.contains("ikke-et-tall"), "Feilmelding skal vise den ugyldige verdien")
+        }
+
+        @Test
+        fun `fromEnv kaster beskrivende feil ved ugyldig SMTP_MIN_INTERVAL_MS`() {
+            val env = baseEnv + mapOf("SMTP_MIN_INTERVAL_MS" to "feil")
+            val ex = assertFailsWith<IllegalStateException> {
+                SmtpConfig.fromEnv { env[it] }
+            }
+            assertTrue(ex.message!!.contains("SMTP_MIN_INTERVAL_MS"), "Feilmelding skal nevne variabelnavnet")
+            assertTrue(ex.message!!.contains("feil"), "Feilmelding skal vise den ugyldige verdien")
+        }
+
+        @Test
         fun `fromEnv leser alle SMTP-env-vars`() {
             val env = baseEnv + mapOf(
                 "SMTP_PORT" to "25",
