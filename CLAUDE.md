@@ -222,13 +222,13 @@ Felt: `OSLO_ZONE: ZoneId`, `isoDateTime: DateTimeFormatter`, `isoDate: DateTimeF
 ### Tjenester
 
 #### SmtpClient (`SmtpClient.kt`) — class
-Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende). **SMTP Session er cached og gjenbrukt** (ikke opprettet paa nytt per sending).
+Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende). **SMTP Session er cached og gjenbrukt** (ikke opprettet paa nytt per sending). STARTTLS og requireAuth er uavhengige — kan konfigureres separat.
 
 - `send(message: EmailMessage, forceDelivery: Boolean = false): SendResult`
 - `sendWithMessageId(message: EmailMessage, messageId: String, forceDelivery: Boolean = false): SendResult`
 
 Dataklasser:
-- `SmtpConfig(host, port = 587, user, password, from, fromName, requireAuth = true, devMode = false, timeoutMs = 10000, minIntervalMs = 100)`
+- `SmtpConfig(host, port = 587, user, password, from, fromName, requireAuth = true, startTls = true, devMode = false, timeoutMs = 10000, minIntervalMs = 100)`
 - `EmailMessage(to, subject, body, htmlBody?, replyTo?, inReplyTo?, attachments = [], from?, fromName?)`
 - `EmailAttachment(filename, content: ByteArray, contentType)`
 - `SendResult(success: Boolean, messageId?, error?)`
