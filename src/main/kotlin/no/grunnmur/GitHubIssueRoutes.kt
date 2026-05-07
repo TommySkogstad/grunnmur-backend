@@ -135,7 +135,9 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
             for ((bytes, filename) in imageData) {
                 val result = config.imageService.uploadImage(issueResponse.number, bytes, filename)
                 result.onSuccess { url -> imageUrls.add(url) }
-                result.onFailure { /* Bildeopplasting feilet, fortsetter uten */ }
+                result.onFailure { e ->
+                    call.application.log.warn("Bildeopplasting feilet for issue #${issueResponse.number}: ${e.message}")
+                }
             }
         }
 
