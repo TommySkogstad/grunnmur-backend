@@ -1,0 +1,32 @@
+name: Fullstendig testsuite (doc-only skip)
+
+# Passthrough-workflow for doc-only PRs. test-full.yml har
+# paths-ignore: **.md/docs/**/scripts/** osv. — paa rene dokumentasjons-PRs
+# trigger den ikke, men branch protection krever 'Backend-tester' som
+# required check. Resultat: doc-PRs henger evig.
+#
+# Denne workflowen trigger PAA samme paths-listen (motsatt) og produserer
+# en check med samme NAVN — branch protection er fornoyd, PR kan auto-merge.
+# Refs misc-scripts#342.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'docker-compose*.yml'
+      - '.env*'
+      - 'LICENSE'
+      - '.gitignore'
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend-tester
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Doc-only PR — bestaatt (ingen testing noedvendig)"
