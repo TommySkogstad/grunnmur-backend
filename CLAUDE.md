@@ -1,7 +1,7 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Brukes av lo-finans, biologportal, 6810 og summa-summarum.
+Brukes av lo-finans, biologportal, 6810 og styreportal.
 
 Sist oppdatert: 2026-05-07
 
