@@ -402,7 +402,7 @@ services:
 ## Versjoner
 
 - Kotlin 2.3.20, Ktor 3.4.2 (Server + Client CIO), Exposed 1.2.0, JVM 25
-- kotlinx-serialization-json 1.11.0, Jakarta Mail 2.1.5, Flyway 11.20.3
+- kotlinx-serialization-json 1.11.0, Jakarta Mail 2.1.5, Flyway 11.19.1
 - kotlin-onetimepassword 2.4.1, SLF4J 2.0.17
 - Alle avhengigheter er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MA holdes i sync med appene (binaer inkompatibilitet)
@@ -412,4 +412,4 @@ services:
 - [lo-finans](https://github.com/TommySkogstad/lo-finans)
 - [biologportal](https://github.com/TommySkogstad/biologportal)
 - [6810](https://github.com/TommySkogstad/6810)
-- [summa-summarum](https://github.com/TommySkogstad/Summa-Summarum)
+- [styreportal](https://github.com/TommySkogstad/styreportal)
