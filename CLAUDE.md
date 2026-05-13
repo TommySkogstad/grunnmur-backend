@@ -288,16 +288,16 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 
 ## Teknisk
 
-- **Kotlin**: 2.3.20
-- **Ktor**: 3.4.2 (compileOnly — Server + Client CIO)
+- **Kotlin**: 2.3.21
+- **Ktor**: 3.4.3 (compileOnly — Server + Client CIO)
 - **Exposed**: 1.2.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.11.0 (compileOnly)
 - **Jakarta Mail**: 2.1.5 (compileOnly)
-- **Flyway**: 11.8.2 (compileOnly — pinnet pga bug i 11.20.3/12.x)
+- **Flyway**: 11.19.1 (compileOnly — pinnet pga bug i 11.20.3/12.x)
 - **kotlin-onetimepassword**: 2.4.1 (compileOnly + testImplementation)
 - **SLF4J**: 2.0.17 (compileOnly)
 - **JVM**: 25
-- **Tester**: JUnit 5.14.3
+- **Tester**: JUnit 5.14.4
 
 ## Integrasjon i apper
 
