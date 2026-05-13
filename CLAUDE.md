@@ -355,12 +355,18 @@ To-nivaa CI-pipeline (kun backend, ingen frontend):
 
 Begge workflows har `concurrency: cancel-in-progress` for aa avbryte utdaterte kjoeringer.
 
-Apper sjekker ut grunnmur med `GRUNNMUR_TOKEN` secret:
+Apper sjekker ut grunnmur med `grunnmur-access` GitHub App (App ID `GRUNNMUR_APP_ID`, privat nøkkel `GRUNNMUR_APP_KEY`):
 ```yaml
+- uses: actions/create-github-app-token@v2
+  id: app-token
+  with:
+    app-id: ${{ secrets.GRUNNMUR_APP_ID }}
+    private-key: ${{ secrets.GRUNNMUR_APP_KEY }}
+    repositories: grunnmur-backend,grunnmur-frontend
 - uses: actions/checkout@v4
   with:
-    repository: TommySkogstad/grunnmur
-    token: ${{ secrets.GRUNNMUR_TOKEN }}
+    repository: TommySkogstad/grunnmur-backend
+    token: ${{ steps.app-token.outputs.token }}
     path: grunnmur
 ```
 
