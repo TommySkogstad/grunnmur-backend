@@ -32,7 +32,7 @@ class AuditLogService {
         userEmail: String = "system",
         action: String,
         entityType: String,
-        entityId: Int? = null,
+        entityId: Long? = null,
         details: String? = null,
         ipAddress: String? = null
     ) {
@@ -165,7 +165,7 @@ data class AuditLogEntry(
     val userEmail: String,
     val action: String,
     val entityType: String,
-    val entityId: Int?,
+    val entityId: Long?,
     val details: String?,
     val ipAddress: String?,
     val timestamp: String

@@ -73,7 +73,7 @@ class AuditLogServiceTest {
             assertEquals("admin@test.no", e.userEmail)
             assertEquals("CREATE", e.action)
             assertEquals("USER", e.entityType)
-            assertEquals(42, e.entityId)
+            assertEquals(42L, e.entityId)
             assertEquals("Opprettet bruker", e.details)
             assertEquals("10.0.0.1", e.ipAddress)
         }
@@ -97,6 +97,21 @@ class AuditLogServiceTest {
             assertNull(entries[0].entityId)
             assertNull(entries[0].details)
             assertNull(entries[0].ipAddress)
+        }
+
+        @Test
+        fun `log bevarer entityId stoerre enn Int MAX VALUE`() {
+            val bigId = Int.MAX_VALUE + 1L
+            service.log(
+                userId = 1,
+                action = "CREATE",
+                entityType = "ENTITY",
+                entityId = bigId
+            )
+
+            val entries = service.findAll()
+            assertEquals(1, entries.size)
+            assertEquals(bigId, entries[0].entityId)
         }
 
         @Test

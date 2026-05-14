@@ -15,7 +15,7 @@ import org.jetbrains.exposed.v1.javatime.datetime
  *     user_email VARCHAR(255) NOT NULL DEFAULT 'system',
  *     action VARCHAR(100) NOT NULL,
  *     entity_type VARCHAR(100) NOT NULL,
- *     entity_id INTEGER,
+ *     entity_id BIGINT,
  *     details TEXT,
  *     ip_address VARCHAR(45),
  *     created_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -31,7 +31,7 @@ object AuditLogs : Table("audit_logs") {
     val userEmail = varchar("user_email", 255).default("system")
     val action = varchar("action", 100)
     val entityType = varchar("entity_type", 100)
-    val entityId = integer("entity_id").nullable()
+    val entityId = long("entity_id").nullable()
     val details = text("details").nullable()
     val ipAddress = varchar("ip_address", 45).nullable()
     val createdAt = datetime("created_at").clientDefault { TimeUtils.nowOslo() }
