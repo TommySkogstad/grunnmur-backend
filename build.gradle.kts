@@ -83,6 +83,11 @@ dependencies {
 
     // H2 (test — in-memory database for Flyway- og Exposed-tester)
     testImplementation("com.h2database:h2:2.4.240")
+
+    // Testcontainers (integrasjonstester mot ekte PostgreSQL 16)
+    testImplementation("org.testcontainers:postgresql:1.21.0")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.0")
+    testImplementation("org.postgresql:postgresql:42.7.4")
 }
 
 java {
@@ -93,6 +98,8 @@ java {
 
 tasks.test {
     useJUnitPlatform()
+    // Testcontainers shaded docker-java defaults to API 1.32 — override to 1.41 for Docker daemons with min API >= 1.40
+    systemProperty("api.version", "1.41")
 }
 
 publishing {
