@@ -162,6 +162,8 @@ Felles Flyway-konfigurasjon: baselineOnMigrate=true, baselineVersion="0", cleanD
 - `configure(dataSource: DataSource, locations: List<String> = listOf("classpath:db/migration")): Flyway`
 - `migrate(dataSource: DataSource, locations: List<String>): Int` — returnerer antall kjorte migrasjoner
 
+**Testdekning**: `FlywayMigrationIntegrationTest` (tagged `@Testcontainers`) kjorer mot PostgreSQL 16 via Testcontainers for aa validere DDL-kompatibilitet. Tidligere var kun H2-basert testing tilgjengelig, som ga falsk trygghet.
+
 #### AuditLogTable (`AuditLogTable.kt`) — object AuditLogs : Table("audit_logs")
 Exposed-tabelldefinisjón: id, userId, userEmail, action, entityType, entityId, details, ipAddress, createdAt.
 Indekser: (entityType, entityId), (createdAt), (userId).
