@@ -19,7 +19,10 @@ import java.io.Closeable
  * - **PAT**: Personlig access token (Config med token)
  * - **GitHub App**: Installation token via JWT (Config med appAuth)
  */
-class GitHubIssueService(private val config: Config) : Closeable {
+class GitHubIssueService(
+    private val config: Config,
+    internal val apiBaseUrl: String = "https://api.github.com"
+) : Closeable {
 
     data class Config(
         val token: String? = null,
@@ -142,7 +145,7 @@ class GitHubIssueService(private val config: Config) : Closeable {
         )
 
         val authToken = getAuthToken()
-        val response = client.post("https://api.github.com/repos/${config.repo}/issues") {
+        val response = client.post("$apiBaseUrl/repos/${config.repo}/issues") {
             header("Authorization", "Bearer $authToken")
             header("Accept", "application/vnd.github+json")
             header("X-GitHub-Api-Version", GITHUB_API_VERSION)
@@ -152,7 +155,7 @@ class GitHubIssueService(private val config: Config) : Closeable {
 
         if (!response.status.isSuccess()) {
             val errorBody = response.bodyAsText()
-            throw RuntimeException("Kunne ikke opprette GitHub Issue: ${response.status} — $errorBody")
+            throw GitHubApiException("Kunne ikke opprette GitHub Issue: ${response.status} — $errorBody", response.status.value)
         }
 
         return json.decodeFromString<GitHubIssueResponse>(response.bodyAsText())
@@ -164,7 +167,7 @@ class GitHubIssueService(private val config: Config) : Closeable {
      */
     suspend fun updateIssueBody(issueNumber: Int, body: String) {
         val authToken = getAuthToken()
-        val response = client.patch("https://api.github.com/repos/${config.repo}/issues/$issueNumber") {
+        val response = client.patch("$apiBaseUrl/repos/${config.repo}/issues/$issueNumber") {
             header("Authorization", "Bearer $authToken")
             header("Accept", "application/vnd.github+json")
             header("X-GitHub-Api-Version", GITHUB_API_VERSION)
@@ -174,7 +177,7 @@ class GitHubIssueService(private val config: Config) : Closeable {
 
         if (!response.status.isSuccess()) {
             val errorBody = response.bodyAsText()
-            throw RuntimeException("Kunne ikke oppdatere GitHub Issue #$issueNumber: ${response.status} — $errorBody")
+            throw GitHubApiException("Kunne ikke oppdatere GitHub Issue #$issueNumber: ${response.status} — $errorBody", response.status.value)
         }
     }
 }

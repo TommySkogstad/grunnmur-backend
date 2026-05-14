@@ -32,3 +32,14 @@ class RateLimitException(
  * Handteres av StatusPages -> 401 Unauthorized.
  */
 class AuthenticationException(message: String = "Autentisering feilet") : Exception(message)
+
+/**
+ * Exception for feil ved kall mot GitHub API.
+ * Kastes av GitHubAppAuth og GitHubIssueService ved 4xx/5xx-svar fra GitHub,
+ * samt ved parsefeil i respons (statusCode = null).
+ */
+open class GitHubApiException(
+    message: String,
+    val statusCode: Int? = null,
+    cause: Throwable? = null
+) : Exception(message, cause)

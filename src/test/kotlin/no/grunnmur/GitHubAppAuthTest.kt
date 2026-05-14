@@ -1,11 +1,13 @@
 package no.grunnmur
 
+import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.Closeable
+import java.net.InetSocketAddress
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -149,6 +151,57 @@ class GitHubAppAuthTest {
             auth.close()
             // Skal vaere idempotent
             auth.close()
+        }
+    }
+
+    @Nested
+    inner class GitHubApiExceptionKasting {
+
+        @Test
+        fun `refreshToken kaster GitHubApiException ved HTTP-feil fra GitHub`() = runBlocking {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/app/installations/789/access_tokens") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val body = """{"message":"Bad credentials"}""".toByteArray()
+                exchange.sendResponseHeaders(401, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+            server.start()
+            val port = server.address.port
+            try {
+                val auth = GitHubAppAuth("123456", testPrivateKey, "789", "http://localhost:$port")
+                val exception = assertFailsWith<GitHubApiException> {
+                    auth.getToken()
+                }
+                assertEquals(401, exception.statusCode)
+                assertContains(exception.message!!, "401")
+            } finally {
+                server.stop(0)
+            }
+        }
+
+        @Test
+        fun `refreshToken kaster GitHubApiException med null statusCode ved ugyldig expires_at-format`() = runBlocking {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/app/installations/789/access_tokens") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val body = """{"token":"test-token","expires_at":"ikke-en-dato"}""".toByteArray()
+                exchange.sendResponseHeaders(201, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+            server.start()
+            val port = server.address.port
+            try {
+                val auth = GitHubAppAuth("123456", testPrivateKey, "789", "http://localhost:$port")
+                val exception = assertFailsWith<GitHubApiException> {
+                    auth.getToken()
+                }
+                assertEquals(null, exception.statusCode)
+                assertContains(exception.message!!, "ikke-en-dato")
+                assertTrue(exception.cause is java.time.format.DateTimeParseException)
+            } finally {
+                server.stop(0)
+            }
         }
     }
 
