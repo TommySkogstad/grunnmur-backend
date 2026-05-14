@@ -3,7 +3,7 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av lo-finans, biologportal, 6810 og styreportal.
 
-Sist oppdatert: 2026-05-07
+Sist oppdatert: 2026-05-14
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -169,12 +169,12 @@ Indekser: (entityType, entityId), (createdAt), (userId).
 #### AuditLogService (`AuditLogService.kt`) — class
 Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Feil i logging stopper ikke hovedoperasjonen.
 
-- `log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Int? = null, details: String? = null, ipAddress: String? = null)` — logger med `TimeUtils.nowOslo()`
+- `log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Long? = null, details: String? = null, ipAddress: String? = null)` — logger med `TimeUtils.nowOslo()`
 - `findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>` — startDate/endDate tolkes som Europe/Oslo datoer
 - `count(action?, entityType?, userId?, startDate?, endDate?): Long` — startDate/endDate tolkes som Europe/Oslo datoer
 - `cleanupOldLogs(retentionDays: Int = 365): Int` — sletter logger eldre enn retentionDays basert på Oslo-tid
 
-`AuditLogEntry` (data class): id, userId, userEmail, action, entityType, entityId, details, ipAddress, timestamp
+`AuditLogEntry` (data class): id, userId, userEmail, action, entityType, entityId (Long?), details, ipAddress, timestamp
 
 #### PaginatedResponse (`PaginatedResponse.kt`) — @Serializable data class
 `PaginatedResponse<T>(items: List<T>, total: Long, limit: Int, offset: Long)`
