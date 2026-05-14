@@ -1,5 +1,6 @@
 package no.grunnmur
 
+import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import java.util.UUID
 import kotlin.io.path.*
@@ -19,6 +20,8 @@ import kotlin.io.path.*
  * ```
  */
 class ImageUploadService(private val config: Config) {
+
+    private val logger = LoggerFactory.getLogger(ImageUploadService::class.java)
 
     data class Config(
         val uploadDir: String,
@@ -73,7 +76,10 @@ class ImageUploadService(private val config: Config) {
     fun deleteIssueImages(issueNumber: Int) {
         val issueDir = Path.of(config.uploadDir, config.repoSlug, issueNumber.toString())
         if (issueDir.exists()) {
-            issueDir.toFile().deleteRecursively()
+            val deleted = issueDir.toFile().deleteRecursively()
+            if (!deleted) {
+                logger.warn("Kunne ikke slette bildemappe for issue #$issueNumber: ${issueDir.toAbsolutePath()}")
+            }
         }
     }
 
@@ -86,7 +92,10 @@ class ImageUploadService(private val config: Config) {
             if (dir.isDirectory()) {
                 val issueNumber = dir.name.toIntOrNull()
                 if (issueNumber != null && issueNumber !in openIssueNumbers) {
-                    dir.toFile().deleteRecursively()
+                    val deleted = dir.toFile().deleteRecursively()
+                    if (!deleted) {
+                        logger.warn("Kunne ikke slette bildemappe for lukket issue #$issueNumber: ${dir.toAbsolutePath()}")
+                    }
                 }
             }
         }

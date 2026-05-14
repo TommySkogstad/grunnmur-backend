@@ -251,5 +251,41 @@ class ImageUploadServiceTest {
             // Skal ikke kaste exception
             service.cleanupClosedIssues(openIssueNumbers = setOf(1))
         }
+
+        @Test
+        fun `cleanupClosedIssues kaster ikke exception ved mislykket sletting`() {
+            val service = createService()
+            service.uploadImage(2, pngBytes(), "b.png")
+
+            val repoDir = tempDir.resolve("test-repo")
+            repoDir.toFile().setReadOnly()
+
+            try {
+                // Skal ikke kaste exception selv om sletting feiler
+                service.cleanupClosedIssues(openIssueNumbers = setOf(1))
+                // Mappen eksisterer fortsatt fordi sletting mislyktes
+                assertTrue(repoDir.resolve("2").exists())
+            } finally {
+                repoDir.toFile().setWritable(true)
+            }
+        }
+
+        @Test
+        fun `deleteIssueImages kaster ikke exception ved mislykket sletting`() {
+            val service = createService()
+            service.uploadImage(1, pngBytes(), "a.png")
+
+            val repoDir = tempDir.resolve("test-repo")
+            repoDir.toFile().setReadOnly()
+
+            try {
+                // Skal ikke kaste exception selv om sletting feiler
+                service.deleteIssueImages(1)
+                // Mappen eksisterer fortsatt fordi sletting mislyktes
+                assertTrue(repoDir.resolve("1").exists())
+            } finally {
+                repoDir.toFile().setWritable(true)
+            }
+        }
     }
 }
