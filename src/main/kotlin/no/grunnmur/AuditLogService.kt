@@ -50,7 +50,7 @@ class AuditLogService {
                 }
             }
         } catch (e: Exception) {
-            log.error("Kunne ikke logge handling: ${e.message}")
+            log.error("Kunne ikke logge handling: ${e.message}", e)
         }
     }
 
@@ -138,7 +138,7 @@ class AuditLogService {
         return try {
             java.time.LocalDate.parse(dateStr)
         } catch (e: Exception) {
-            log.warn("Ugyldig datoformat: '$dateStr' — ${e.message}")
+            log.warn("Ugyldig datoformat: '$dateStr'", e)
             null
         }
     }
