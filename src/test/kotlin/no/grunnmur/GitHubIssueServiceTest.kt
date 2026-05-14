@@ -1,9 +1,14 @@
 package no.grunnmur
 
+import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.Closeable
+import java.net.InetSocketAddress
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -193,6 +198,54 @@ class GitHubIssueServiceTest {
         assertContains(updatedBody, "### Vedlegg")
         assertContains(updatedBody, "![abc-123.png](https://example.com/uploads/issues/biologportal/42/abc-123.png)")
         assertContains(updatedBody, "![def-456.jpg](https://example.com/uploads/issues/biologportal/42/def-456.jpg)")
+    }
+
+    @Nested
+    inner class GitHubApiExceptionKasting {
+
+        @Test
+        fun `createIssue kaster GitHubApiException ved 4xx-respons fra GitHub`() = runBlocking {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/repos/TestOrg/test-repo/issues") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val body = """{"message":"Validation Failed"}""".toByteArray()
+                exchange.sendResponseHeaders(422, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+            server.start()
+            val port = server.address.port
+            try {
+                val testService = GitHubIssueService(config, "http://localhost:$port")
+                val exception = assertFailsWith<GitHubApiException> {
+                    testService.createIssue("Tittel", "Sender", "sender@test.com", "Beskrivelse")
+                }
+                assertEquals(422, exception.statusCode)
+            } finally {
+                server.stop(0)
+            }
+        }
+
+        @Test
+        fun `updateIssueBody kaster GitHubApiException ved 4xx-respons fra GitHub`() = runBlocking {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/repos/TestOrg/test-repo/issues/42") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val body = """{"message":"Not Found"}""".toByteArray()
+                exchange.sendResponseHeaders(404, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+            server.start()
+            val port = server.address.port
+            try {
+                val testService = GitHubIssueService(config, "http://localhost:$port")
+                val exception = assertFailsWith<GitHubApiException> {
+                    testService.updateIssueBody(42, "Oppdatert innhold")
+                }
+                assertEquals(404, exception.statusCode)
+            } finally {
+                server.stop(0)
+            }
+        }
     }
 
     @Test

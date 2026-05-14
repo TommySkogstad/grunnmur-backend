@@ -23,7 +23,8 @@ import java.util.Base64
 open class GitHubAppAuth(
     private val appId: String,
     private val privateKeyPem: String,
-    private val installationId: String
+    private val installationId: String,
+    internal val baseUrl: String = "https://api.github.com"
 ) : Closeable {
     @Serializable
     private data class InstallationToken(
@@ -65,14 +66,14 @@ open class GitHubAppAuth(
     protected open suspend fun refreshToken(): String {
         val jwt = createJwt()
 
-        val response = client.post("https://api.github.com/app/installations/$installationId/access_tokens") {
+        val response = client.post("$baseUrl/app/installations/$installationId/access_tokens") {
             header("Authorization", "Bearer $jwt")
             header("Accept", "application/vnd.github+json")
         }
 
         if (!response.status.isSuccess()) {
             val errorBody = response.bodyAsText()
-            throw RuntimeException("Kunne ikke hente installation token: ${response.status} — $errorBody")
+            throw GitHubApiException("Kunne ikke hente installation token: ${response.status} — $errorBody", response.status.value)
         }
 
         val tokenResponse = json.decodeFromString<InstallationToken>(response.bodyAsText())
@@ -80,7 +81,7 @@ open class GitHubAppAuth(
         tokenExpiresAt = try {
             parseExpiresAt(tokenResponse.expires_at)
         } catch (e: java.time.format.DateTimeParseException) {
-            throw RuntimeException("Ugyldig expires_at-format fra GitHub: '${tokenResponse.expires_at}'", e)
+            throw GitHubApiException("Ugyldig expires_at-format fra GitHub: '${tokenResponse.expires_at}'", null, e)
         }
         return tokenResponse.token
     }
