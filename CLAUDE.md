@@ -167,7 +167,7 @@ Exposed-tabelldefinisjón: id, userId, userEmail, action, entityType, entityId, 
 Indekser: (entityType, entityId), (createdAt), (userId).
 
 #### AuditLogService (`AuditLogService.kt`) — class
-Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Feil i logging stopper ikke hovedoperasjonen.
+Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Feil i logging stopper ikke hovedoperasjonen og logges med full stack trace.
 
 - `log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Long? = null, details: String? = null, ipAddress: String? = null)` — logger med `TimeUtils.nowOslo()`
 - `findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>` — startDate/endDate tolkes som Europe/Oslo datoer
