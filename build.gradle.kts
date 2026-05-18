@@ -47,7 +47,7 @@ dependencies {
     compileOnly("dev.turingcomplete:kotlin-onetimepassword:2.4.1")
 
     // Logging
-    compileOnly("org.slf4j:slf4j-api:2.0.17")
+    compileOnly("org.slf4j:slf4j-api:2.0.18")
 
     // Test
     testImplementation(kotlin("test"))
@@ -67,7 +67,7 @@ dependencies {
     // Jakarta Mail (test — trenger implementasjon for å kjøre tester)
     testImplementation("jakarta.mail:jakarta.mail-api:2.1.5")
     testImplementation("org.eclipse.angus:angus-mail:2.0.5")
-    testImplementation("org.slf4j:slf4j-simple:2.0.17")
+    testImplementation("org.slf4j:slf4j-simple:2.0.18")
 
     // TOTP (test — trenger implementasjon for å kjøre tester)
     testImplementation("dev.turingcomplete:kotlin-onetimepassword:2.4.1")
