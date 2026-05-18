@@ -27,6 +27,6 @@ permissions:
 jobs:
   backend:
     name: Backend-tester
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, nuc]
     steps:
       - run: echo "Doc-only PR — bestaatt (ingen testing noedvendig)"
