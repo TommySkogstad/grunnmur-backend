@@ -85,8 +85,8 @@ dependencies {
     testImplementation("com.h2database:h2:2.4.240")
 
     // Testcontainers (integrasjonstester mot ekte PostgreSQL 16)
-    testImplementation("org.testcontainers:postgresql:1.21.0")
-    testImplementation("org.testcontainers:junit-jupiter:1.21.0")
+    testImplementation("org.testcontainers:postgresql:1.21.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.4")
     testImplementation("org.postgresql:postgresql:42.7.4")
 }
 
