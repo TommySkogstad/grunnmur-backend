@@ -6,7 +6,7 @@
 
 <p align="center">Felles Kotlin-bibliotek for Ktor-appene i portefoljen.<br>Standardiserer patterns som tidligere var duplisert med variasjoner mellom apper.</p>
 
-<p align="center"><em>Sist oppdatert: 2026-04-08</em></p>
+<p align="center"><em>Sist oppdatert: 2026-05-14</em></p>
 
 ---
 
@@ -137,7 +137,7 @@ install(StatusPages) {
 }
 ```
 
-Mapper: `BadRequestException` -> 400, `NotFoundException` -> 404, `ForbiddenException` -> 403, `RateLimitException` -> 429, `AuthenticationException` -> 401, `IllegalArgumentException` -> 400, `Throwable` -> 500 (skjuler detaljer i produksjon).
+Mapper: `BadRequestException` -> 400, `NotFoundException` -> 404, `ForbiddenException` -> 403, `RateLimitException` -> 429, `AuthenticationException` -> 401, `GitHubApiException` -> 500 (fra GitHub API-feil), `IllegalArgumentException` -> 400, `Throwable` -> 500 (skjuler detaljer i produksjon).
 
 ---
 
@@ -280,7 +280,7 @@ val result = smtp.send(EmailMessage(
 Dataklasser: **SmtpConfig**, **EmailMessage**, **EmailAttachment**, **SendResult**
 
 #### GitHubIssueService (`GitHubIssueService.kt`)
-Oppretter og oppdaterer GitHub Issues via API. Stoetter baade PAT og GitHub App-autentisering. All input saniteres via InputSanitizer.
+Oppretter og oppdaterer GitHub Issues via API. Stoetter baade PAT og GitHub App-autentisering. All input saniteres via InputSanitizer. Kaster `GitHubApiException` ved API-feil.
 
 ```kotlin
 val service = GitHubIssueService(GitHubIssueService.Config(
@@ -292,21 +292,21 @@ val result = service.createIssue(title = "Bug", senderName = "Ola", senderEmail 
 
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
-| `createIssue` | `(title, senderName, senderEmail, description, ...): GitHubIssueResponse` | Oppretter issue (suspend) |
-| `updateIssueBody` | `(issueNumber: Int, body: String)` | Oppdaterer issue-body (suspend) |
+| `createIssue` | `(title, senderName, senderEmail, description, ...): GitHubIssueResponse` | Oppretter issue (suspend), kaster GitHubApiException |
+| `updateIssueBody` | `(issueNumber: Int, body: String)` | Oppdaterer issue-body (suspend), kaster GitHubApiException |
 | `buildBody` | `(senderName, senderEmail, description, ...): String` | Bygger markdown-body |
 
 #### GitHubAppAuth (`GitHubAppAuth.kt`)
-GitHub App-autentisering med JWT (RS256), automatisk caching av installation tokens og **thread-safe token-refresh** via Mutex (double-checked locking).
+GitHub App-autentisering med JWT (RS256), automatisk caching av installation tokens og **thread-safe token-refresh** via Mutex (double-checked locking). Kaster `GitHubApiException` ved API-feil eller parsefeil.
 
 ```kotlin
 val auth = GitHubAppAuth(appId = "12345", privateKeyPem = pemKey, installationId = "67890")
-val token = auth.getToken() // suspend — cacher og fornyer automatisk, atomisk under parallell last
+val token = auth.getToken() // suspend — cacher og fornyer automatisk, atomisk under parallell last, kaster GitHubApiException
 ```
 
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
-| `getToken` | `(): String` (suspend) | Henter gyldig installation token, thread-safe |
+| `getToken` | `(): String` (suspend) | Henter gyldig installation token, thread-safe, kaster GitHubApiException |
 
 #### GitHubIssueRoutes (`GitHubIssueRoutes.kt`)
 Ktor-ruter for issue-oppretting (multipart med bilder) og GitHub webhook-mottak med HMAC-SHA256-signaturverifisering.
@@ -359,6 +359,7 @@ Typed exceptions som mappes til HTTP-statuskoder via StatusPages:
 | `ForbiddenException` | 403 Forbidden |
 | `RateLimitException` | 429 Too Many Requests |
 | `AuthenticationException` | 401 Unauthorized |
+| `GitHubApiException` | 500 Internal Server Error (fra GitHub API-feil) |
 
 #### TotpModels (`TotpModels.kt`)
 Serialiserbare dataklasser for TOTP-operasjoner:
@@ -410,7 +411,6 @@ services:
 
 ## Brukes av
 
-- [lo-finans](https://github.com/TommySkogstad/lo-finans)
 - [biologportal](https://github.com/TommySkogstad/biologportal)
 - [6810](https://github.com/TommySkogstad/6810)
 - [styreportal](https://github.com/TommySkogstad/styreportal)
