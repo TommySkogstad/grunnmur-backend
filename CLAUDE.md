@@ -1,7 +1,7 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Brukes av lo-finans, biologportal, 6810 og styreportal.
+Brukes av biologportal, 6810 og styreportal.
 
 Sist oppdatert: 2026-05-14
 
@@ -241,8 +241,8 @@ Dataklasser:
 #### GitHubIssueService (`GitHubIssueService.kt`) — class
 GitHub API for issues. Stoetter PAT og GitHub App-autentisering. Saniterer all input via InputSanitizer. **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
 
-- `createIssue(title, senderName, senderEmail, description, consoleLogs?, imageFilenames?, labels): GitHubIssueResponse` (suspend)
-- `updateIssueBody(issueNumber: Int, body: String)` (suspend)
+- `createIssue(title, senderName, senderEmail, description, consoleLogs?, imageFilenames?, labels): GitHubIssueResponse` (suspend) — kaster `GitHubApiException` ved 4xx/5xx fra GitHub
+- `updateIssueBody(issueNumber: Int, body: String)` (suspend) — kaster `GitHubApiException` ved 4xx/5xx fra GitHub
 - `buildBody(senderName, senderEmail, description, consoleLogs?, imageFilenames?): String`
 - `close()` — lukker den interne HttpClient-instansen
 
@@ -251,7 +251,7 @@ Config: `Config(token?, appAuth?, repo, uploadDir?, publicBaseUrl?)`
 #### GitHubAppAuth (`GitHubAppAuth.kt`) — class
 GitHub App JWT (RS256) autentisering med installation token-caching. Leser faktisk `expires_at` fra GitHub API-respons og fornyer automatisk 5 min foer utloep. **Atomisk token-refresh** via Mutex sikrer at kun én coroutine kaller GitHub API selv under parallell load (double-checked locking). **Implementerer Closeable — lukk instansen med `close()` eller try-with-resources.**
 
-- `getToken(): String` (suspend) — returnerer gyldig installation token, cacher basert paa faktisk utløpstid fra API. Thread-safe.
+- `getToken(): String` (suspend) — returnerer gyldig installation token, cacher basert paa faktisk utløpstid fra API. Thread-safe. Kaster `GitHubApiException` ved 4xx/5xx fra GitHub eller parsefeil i `expires_at`.
 - `parseExpiresAt(expiresAt: String): Long` — parser ISO-8601 `expires_at` fra GitHub til millisekunder siden epoch
 - `close()` — lukker den interne HttpClient-instansen
 
@@ -281,12 +281,13 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 
 ### Modeller
 
-#### Exceptions (`Exceptions.kt`) — 5 exception-klasser
+#### Exceptions (`Exceptions.kt`) — 6 exception-klasser
 - `BadRequestException(message)` -> 400
 - `NotFoundException(message)` -> 404
 - `ForbiddenException(message)` -> 403
 - `RateLimitException(message, retryAfterSeconds?)` -> 429 (med `Retry-After`-header naar tilgjengelig)
 - `AuthenticationException(message)` -> 401
+- `GitHubApiException(message, statusCode?, cause?)` — kastes av GitHubAppAuth og GitHubIssueService ved 4xx/5xx-svar fra GitHub eller parsefeil (statusCode = null)
 
 ## Teknisk
 
@@ -389,7 +390,7 @@ Apper sjekker ut grunnmur med `grunnmur-access` GitHub App (App ID `GRUNNMUR_APP
 
 ## Versjonsstrategi
 
-`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (lo-finans, biologportal, 6810, styreportal) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
+`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (biologportal, 6810, styreportal) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
 
 `publishing`-blokken i `build.gradle.kts` eksisterer for fremtidig publisering til GitHub Packages, men er ikke i rutinemessig bruk. Versjonen bumpes kun manuelt ved breaking changes — ingen automatisk bump, ingen SNAPSHOT-konvensjon, ingen CHANGELOG.
 
