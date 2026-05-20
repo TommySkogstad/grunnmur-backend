@@ -279,6 +279,14 @@ val result = smtp.send(EmailMessage(
 
 Dataklasser: **SmtpConfig**, **EmailMessage**, **EmailAttachment**, **SendResult**
 
+**SmtpConfig.fromEnv()** leser konfigurasjon fra miljøvariabler. Numeriske felt (`SMTP_PORT`, `SMTP_TIMEOUT_MS`, `SMTP_MIN_INTERVAL_MS`) valideres med `toIntOrNull()`/`toLongOrNull()` og gir beskrivende feilmelding ved ugyldig verdi, f.eks.:
+
+```
+SMTP_PORT må være et heltall, fikk: 'ikke-et-tall'
+```
+
+`SMTP_STARTTLS` og `SMTP_REQUIRE_AUTH` er uavhengige — STARTTLS kan aktiveres uten autentisering (f.eks. for Postfix med self-signed sertifikat).
+
 #### GitHubIssueService (`GitHubIssueService.kt`)
 Oppretter og oppdaterer GitHub Issues via API. Stoetter baade PAT og GitHub App-autentisering. All input saniteres via InputSanitizer. Kaster `GitHubApiException` ved API-feil.
 
