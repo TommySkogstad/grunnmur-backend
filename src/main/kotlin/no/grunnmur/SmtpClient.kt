@@ -6,10 +6,11 @@ import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.util.ByteArrayDataSource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /**
  * Konfigurasjon for SMTP-tilkobling.
@@ -157,7 +158,7 @@ class SmtpClient(
     private val transportAction: ((MimeMessage) -> Unit)? = null
 ) {
     private val logger = LoggerFactory.getLogger(SmtpClient::class.java)
-    private val sendLock = ReentrantLock()
+    private val sendLock = Mutex()
 
     @Volatile
     private var lastSendTime = 0L
@@ -171,7 +172,7 @@ class SmtpClient(
      * @param forceDelivery Tving sending selv i dev-modus (for OTP, invitasjoner o.l.)
      * @return SendResult med status og messageId
      */
-    fun send(message: EmailMessage, forceDelivery: Boolean = false): SendResult {
+    suspend fun send(message: EmailMessage, forceDelivery: Boolean = false): SendResult {
         return doSend(message, forceDelivery, customMessageId = null)
     }
 
@@ -186,7 +187,7 @@ class SmtpClient(
      * @param forceDelivery Tving sending selv i dev-modus
      * @return SendResult med status og messageId
      */
-    fun sendWithMessageId(
+    suspend fun sendWithMessageId(
         message: EmailMessage,
         messageId: String,
         forceDelivery: Boolean = false
@@ -194,7 +195,7 @@ class SmtpClient(
         return doSend(message, forceDelivery, customMessageId = messageId)
     }
 
-    private fun doSend(
+    private suspend fun doSend(
         message: EmailMessage,
         forceDelivery: Boolean,
         customMessageId: String?
@@ -214,7 +215,7 @@ class SmtpClient(
                 val now = System.currentTimeMillis()
                 val elapsed = now - lastSendTime
                 if (elapsed < config.minIntervalMs && lastSendTime > 0) {
-                    Thread.sleep(config.minIntervalMs - elapsed)
+                    delay(config.minIntervalMs - elapsed)
                 }
 
                 mimeMessage.saveChanges()
