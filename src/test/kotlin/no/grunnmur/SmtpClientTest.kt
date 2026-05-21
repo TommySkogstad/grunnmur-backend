@@ -2,6 +2,8 @@ package no.grunnmur
 
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -34,7 +36,7 @@ class SmtpClientTest {
     inner class DevModus {
 
         @Test
-        fun `dev-modus logger i stedet for aa sende`() {
+        fun `dev-modus logger i stedet for aa sende`() = runBlocking {
             val (client, messages) = captureClient(devConfig)
 
             val result = client.send(EmailMessage(
@@ -50,7 +52,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `dev-modus med forceDelivery sender faktisk`() {
+        fun `dev-modus med forceDelivery sender faktisk`() = runBlocking {
             val (client, messages) = captureClient(devConfig)
 
             val result = client.send(
@@ -63,7 +65,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `sendWithMessageId i dev-modus returnerer oppgitt messageId`() {
+        fun `sendWithMessageId i dev-modus returnerer oppgitt messageId`() = runBlocking {
             val (client, messages) = captureClient(devConfig)
 
             val result = client.sendWithMessageId(
@@ -81,7 +83,7 @@ class SmtpClientTest {
     inner class Sending {
 
         @Test
-        fun `send returnerer SendResult med messageId`() {
+        fun `send returnerer SendResult med messageId`() = runBlocking {
             val (client, messages) = captureClient()
 
             val result = client.send(EmailMessage(
@@ -97,7 +99,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send setter riktige felter paa MimeMessage`() {
+        fun `send setter riktige felter paa MimeMessage`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -113,7 +115,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med from-override bruker message from i stedet for config from`() {
+        fun `send med from-override bruker message from i stedet for config from`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -129,7 +131,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med fromName-override bruker message fromName i stedet for config fromName`() {
+        fun `send med fromName-override bruker message fromName i stedet for config fromName`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -145,7 +147,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send uten fromName-override bruker config fromName`() {
+        fun `send uten fromName-override bruker config fromName`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -159,7 +161,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send uten from-override bruker config from`() {
+        fun `send uten from-override bruker config from`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -173,7 +175,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med htmlBody oppretter multipart alternative`() {
+        fun `send med htmlBody oppretter multipart alternative`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -191,7 +193,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med replyTo setter Reply-To header`() {
+        fun `send med replyTo setter Reply-To header`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -206,7 +208,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med feil returnerer failure SendResult`() {
+        fun `send med feil returnerer failure SendResult`() = runBlocking {
             val client = SmtpClient(testConfig) { throw RuntimeException("SMTP-feil") }
 
             val result = client.send(EmailMessage(
@@ -225,7 +227,7 @@ class SmtpClientTest {
     inner class SendWithMessageId {
 
         @Test
-        fun `sendWithMessageId setter custom Message-ID`() {
+        fun `sendWithMessageId setter custom Message-ID`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.sendWithMessageId(
@@ -238,7 +240,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `sendWithMessageId setter In-Reply-To og References`() {
+        fun `sendWithMessageId setter In-Reply-To og References`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.sendWithMessageId(
@@ -257,7 +259,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `sendWithMessageId returnerer oppgitt messageId i SendResult`() {
+        fun `sendWithMessageId returnerer oppgitt messageId i SendResult`() = runBlocking {
             val (client, _) = captureClient()
 
             val result = client.sendWithMessageId(
@@ -274,7 +276,7 @@ class SmtpClientTest {
     inner class SessionCaching {
 
         @Test
-        fun `samme Session-instans gjenbrukes paa tvers av sendinger`() {
+        fun `samme Session-instans gjenbrukes paa tvers av sendinger`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(to = "a@example.com", subject = "1", body = "1"))
@@ -292,7 +294,7 @@ class SmtpClientTest {
     inner class RateLimiting {
 
         @Test
-        fun `rate limiting overolder minInterval mellom sendinger`() {
+        fun `rate limiting overolder minInterval mellom sendinger`() = runBlocking {
             val config = testConfig.copy(minIntervalMs = 100)
             val (client, _) = captureClient(config)
 
@@ -305,7 +307,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `rate limiting gjelder ikke i dev-modus`() {
+        fun `rate limiting gjelder ikke i dev-modus`() = runBlocking {
             val config = devConfig.copy(minIntervalMs = 500)
             val (client, _) = captureClient(config)
 
@@ -317,13 +319,28 @@ class SmtpClientTest {
 
             assertTrue(elapsed < 500, "Dev-modus skal ikke rate-limite, brukte ${elapsed}ms")
         }
+
+        @Test
+        fun `send bruker delay og blokkerer ikke JVM-traad under rate limiting`() = runTest {
+            // ROD: Med Thread.sleep blokkeres testtraaden i >= 1000ms og wallElapsed >= 1000ms -> fail
+            // GRONN: Med delay() hopper TestScope virtuell tid momentant -> wallElapsed < 500ms -> pass
+            val config = testConfig.copy(minIntervalMs = 1000)
+            val (client, _) = captureClient(config)
+
+            client.send(EmailMessage(to = "a@test.com", subject = "1", body = "1"))
+            val wallStart = System.currentTimeMillis()
+            client.send(EmailMessage(to = "b@test.com", subject = "2", body = "2"))
+            val wallElapsed = System.currentTimeMillis() - wallStart
+
+            assertTrue(wallElapsed < 500, "send() blokkerte JVM-traaden i ${wallElapsed}ms — forventet < 500ms med delay()")
+        }
     }
 
     @Nested
     inner class Vedlegg {
 
         @Test
-        fun `send med vedlegg oppretter multipart mixed`() {
+        fun `send med vedlegg oppretter multipart mixed`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -344,7 +361,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med flere vedlegg inkluderer alle`() {
+        fun `send med flere vedlegg inkluderer alle`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -364,7 +381,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `vedlegg med htmlBody har riktig struktur`() {
+        fun `vedlegg med htmlBody har riktig struktur`() = runBlocking {
             val (client, messages) = captureClient()
 
             client.send(EmailMessage(
@@ -499,7 +516,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `send med requireAuth false sender uten autentisering`() {
+        fun `send med requireAuth false sender uten autentisering`() = runBlocking {
             val noAuthConfig = testConfig.copy(requireAuth = false)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(noAuthConfig) { mime -> messages.add(mime) }
@@ -515,7 +532,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `STARTTLS er aktivert uavhengig av requireAuth`() {
+        fun `STARTTLS er aktivert uavhengig av requireAuth`() = runBlocking {
             val noAuthConfig = testConfig.copy(requireAuth = false)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(noAuthConfig) { mime -> messages.add(mime) }
@@ -530,7 +547,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `startTls false deaktiverer STARTTLS uavhengig av requireAuth`() {
+        fun `startTls false deaktiverer STARTTLS uavhengig av requireAuth`() = runBlocking {
             val noTlsConfig = testConfig.copy(startTls = false)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(noTlsConfig) { mime -> messages.add(mime) }
@@ -543,7 +560,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `startTls true setter starttls required til true`() {
+        fun `startTls true setter starttls required til true`() = runBlocking {
             val tlsConfig = testConfig.copy(startTls = true)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(tlsConfig) { mime -> messages.add(mime) }
@@ -556,7 +573,7 @@ class SmtpClientTest {
         }
 
         @Test
-        fun `startTls false setter starttls required til false`() {
+        fun `startTls false setter starttls required til false`() = runBlocking {
             val noTlsConfig = testConfig.copy(startTls = false)
             val messages = mutableListOf<MimeMessage>()
             val client = SmtpClient(noTlsConfig) { mime -> messages.add(mime) }
