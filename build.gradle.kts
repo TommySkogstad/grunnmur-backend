@@ -39,7 +39,7 @@ dependencies {
     compileOnly("jakarta.mail:jakarta.mail-api:2.1.5")
 
     // Flyway (compileOnly — apper har sin egen versjon)
-    // Pinnet 11.8.2: 11.20.3 og 12.x er buggy, se MEMORY.md
+    // Øvre grense: < 11.20.0 (bug i 11.20.3+/12.x — se dependabot-blocked issues #79/#80)
     compileOnly("org.flywaydb:flyway-core:11.19.1")
     compileOnly("org.flywaydb:flyway-database-postgresql:11.19.1")
 
