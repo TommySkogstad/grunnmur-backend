@@ -1,7 +1,7 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Brukes av biologportal, 6810 og styreportal.
+Brukes av biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle.
 
 Sist oppdatert: 2026-05-14
 

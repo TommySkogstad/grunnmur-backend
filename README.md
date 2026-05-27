@@ -424,3 +424,6 @@ services:
 - [biologportal](https://github.com/TommySkogstad/biologportal)
 - [6810](https://github.com/TommySkogstad/6810)
 - [styreportal](https://github.com/TommySkogstad/styreportal)
+- [smart-casual](https://github.com/TommySkogstad/smart-casual)
+- [maskemester](https://github.com/TommySkogstad/maskemester)
+- [vinforalle](https://github.com/TommySkogstad/vinforalle)
