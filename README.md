@@ -42,6 +42,8 @@ loginLimiter.reset(clientIp) // Etter vellykket login
 | `isAllowed` | `(key: String): Boolean` | Sjekker og registrerer forsok |
 | `reset` | `(key: String)` | Nullstiller teller for en noekkel |
 | `remainingAttempts` | `(key: String): Int` | Gjenvaerende forsok |
+| `retryAfterSeconds` | `(key: String): Long?` | Sekunder til vindu utloeper (null hvis ikke blokkert) |
+| `windowMs` | `Long` | Tidsvinduet i millisekunder (public property) |
 | `clear` | `()` | Nullstill alt (kun testing) |
 | `size` | `(): Int` | Antall aktive entries |
 
@@ -274,8 +276,8 @@ val result = smtp.send(EmailMessage(
 
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
-| `send` | `(message: EmailMessage, forceDelivery: Boolean = false): SendResult` | Sender e-post |
-| `sendWithMessageId` | `(message, messageId, forceDelivery): SendResult` | Sender med egendefinert Message-ID |
+| `send` | `suspend (message: EmailMessage, forceDelivery: Boolean = false): SendResult` | Sender e-post |
+| `sendWithMessageId` | `suspend (message, messageId, forceDelivery): SendResult` | Sender med egendefinert Message-ID |
 
 Dataklasser: **SmtpConfig**, **EmailMessage**, **EmailAttachment**, **SendResult**
 
