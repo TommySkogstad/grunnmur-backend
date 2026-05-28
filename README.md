@@ -158,7 +158,7 @@ FlywayMigration.migrate(dataSource) // Kjoerer alle ventende migrasjoner
 | `migrate` | `(dataSource, locations): Int` | Kjoerer migrasjoner, returnerer antall |
 
 #### AuditLog (`AuditLogTable.kt` + `AuditLogService.kt`)
-Database-basert revisjonslogging med Exposed DSL. Tabellen `audit_logs` med indekser paa entity, created_at og user.
+Database-basert revisjonslogging med Exposed DSL. Tabellen `audit_logs` med indekser paa entity, created_at og user. Testdekning via PostgreSQL 16-integrasjonstester (Testcontainers).
 
 ```kotlin
 val auditLog = AuditLogService()

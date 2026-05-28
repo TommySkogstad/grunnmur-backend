@@ -178,6 +178,8 @@ Revisjonslogging med streng-basert action/entityType (apper definerer egne enums
 
 `AuditLogEntry` (data class): id, userId, userEmail, action, entityType, entityId (Long?), details, ipAddress, timestamp
 
+**Testdekning**: `AuditLogServiceIntegrationTest` (tagged `@Testcontainers`) kjorer mot PostgreSQL 16 via Testcontainers for aa validere datofiltrering og cleanup-logikk. Sikrer korrekt Oslo-tid-semantikk mot ekte databasen.
+
 #### PaginatedResponse (`PaginatedResponse.kt`) — @Serializable data class
 `PaginatedResponse<T>(items: List<T>, total: Long, limit: Int, offset: Long)`
 
