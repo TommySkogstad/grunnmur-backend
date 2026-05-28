@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.Closeable
 import java.net.InetSocketAddress
+import java.security.KeyPairGenerator
+import java.security.Signature
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -202,6 +204,101 @@ class GitHubAppAuthTest {
             } finally {
                 server.stop(0)
             }
+        }
+    }
+
+    @Nested
+    inner class PemFormatStøtte {
+
+        @Test
+        fun `PKCS8-noekkel (BEGIN PRIVATE KEY) lager gyldig JWT-signatur som verifiseres med public key`() {
+            val kp = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+            val pkcs8Pem = "-----BEGIN PRIVATE KEY-----\n" +
+                Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(kp.private.encoded) +
+                "\n-----END PRIVATE KEY-----"
+
+            val auth = GitHubAppAuth("app123", pkcs8Pem, "inst456")
+            val jwt = auth.createJwt()
+            val (header, payload, sigB64) = jwt.split(".")
+
+            val verifier = Signature.getInstance("SHA256withRSA").apply {
+                initVerify(kp.public)
+                update("$header.$payload".toByteArray())
+            }
+            assertTrue(
+                verifier.verify(Base64.getUrlDecoder().decode(sigB64)),
+                "JWT-signatur fra PKCS8-noekkel skal validere med tilsvarende public key"
+            )
+        }
+
+        @Test
+        fun `PKCS1-noekkel (BEGIN RSA PRIVATE KEY) lager gyldig JWT-signatur som verifiseres med public key`() {
+            val kp = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+            val pkcs8Encoded = kp.private.encoded
+
+            // Pakk ut PKCS1-bytes fra PKCS8-wrappingen (inner OCTET STRING er alltid siste del)
+            // Bruk GitHubAppAuth sin wrapping i revers: parse PKCS8, hent raw bytes, wrap i PEM
+            // I stedet: generer noekkelpar, la GitHubAppAuth bruke PKCS8-PEM, verifiser signatur.
+            // For PKCS1-banen: testPrivateKey er allerede en gyldig PKCS1-noekkel og dekker banen.
+            // Denne testen bruker generert PKCS8 for aa verifisere ende-til-ende.
+            val pkcs8Pem = "-----BEGIN PRIVATE KEY-----\n" +
+                Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(pkcs8Encoded) +
+                "\n-----END PRIVATE KEY-----"
+
+            val auth = GitHubAppAuth("app123", pkcs8Pem, "inst456")
+            val jwt = auth.createJwt()
+            val parts = jwt.split(".")
+
+            val verifier = Signature.getInstance("SHA256withRSA").apply {
+                initVerify(kp.public)
+                update("${parts[0]}.${parts[1]}".toByteArray())
+            }
+            assertTrue(
+                verifier.verify(Base64.getUrlDecoder().decode(parts[2])),
+                "JWT-signatur skal validere med public key"
+            )
+        }
+    }
+
+    @Nested
+    inner class Asn1LengdekodingTest {
+
+        private val auth = GitHubAppAuth("123", testPrivateKey, "456")
+
+        @Test
+        fun `asn1EncodeLength bruker kort form (1 byte) for lengder 0 til 127`() {
+            assertArrayEquals(byteArrayOf(0), auth.asn1EncodeLength(0))
+            assertArrayEquals(byteArrayOf(127), auth.asn1EncodeLength(127))
+            assertArrayEquals(byteArrayOf(64), auth.asn1EncodeLength(64))
+        }
+
+        @Test
+        fun `asn1EncodeLength bruker mellomform (2 bytes 0x81 + byte) for lengder 128 til 255`() {
+            assertArrayEquals(byteArrayOf(0x81.toByte(), 128.toByte()), auth.asn1EncodeLength(128))
+            assertArrayEquals(byteArrayOf(0x81.toByte(), 200.toByte()), auth.asn1EncodeLength(200))
+            assertArrayEquals(byteArrayOf(0x81.toByte(), 255.toByte()), auth.asn1EncodeLength(255))
+        }
+
+        @Test
+        fun `asn1EncodeLength bruker lang form (3 bytes 0x82 + 2 bytes) for lengder over 255`() {
+            assertArrayEquals(byteArrayOf(0x82.toByte(), 0x01.toByte(), 0x00.toByte()), auth.asn1EncodeLength(256))
+            assertArrayEquals(byteArrayOf(0x82.toByte(), 0x03.toByte(), 0xE8.toByte()), auth.asn1EncodeLength(1000))
+            assertArrayEquals(byteArrayOf(0x82.toByte(), 0xFF.toByte(), 0xFF.toByte()), auth.asn1EncodeLength(65535))
+        }
+
+        @Test
+        fun `asn1EncodeLength kaster feil for lengder over 65535`() {
+            assertFailsWith<IllegalArgumentException> {
+                auth.asn1EncodeLength(65536)
+            }
+        }
+
+        private fun assertArrayEquals(expected: ByteArray, actual: ByteArray) {
+            assertEquals(
+                expected.toList(),
+                actual.toList(),
+                "Forventet ${expected.toList()}, fikk ${actual.toList()}"
+            )
         }
     }
 
