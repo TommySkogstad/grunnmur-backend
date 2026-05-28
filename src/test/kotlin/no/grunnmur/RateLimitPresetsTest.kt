@@ -182,6 +182,38 @@ class RateLimitPresetsTest {
     }
 
     @Test
+    fun `CompositeRateLimiter 5 blokkerte per-minutt kall tapper per-time-kvoten fra 5 til 0`() {
+        val minuteLimiter = RateLimiter(maxAttempts = 5, windowMs = 60_000)
+        val hourLimiter = RateLimiter(maxAttempts = 10, windowMs = 3_600_000)
+        val limiter = CompositeRateLimiter(minuteLimiter, hourLimiter)
+
+        // 5 tillatte kall -- per-minutt naas, per-time har 5 igjen
+        repeat(5) { assertTrue(limiter.isAllowed("ip1")) }
+        assertEquals(5, hourLimiter.remainingAttempts("ip1"), "Per-time har 5 igjen etter 5 tillatte kall")
+
+        // 5 blokkerte kall -- per-minutt blokkerer, per-time registrerer og tapper fra 5 til 0
+        repeat(5) { assertFalse(limiter.isAllowed("ip1")) }
+        assertEquals(0, hourLimiter.remainingAttempts("ip1"),
+            "5 blokkerte per-minutt-kall har tappet per-time-kvoten fra 5 til 0 (ikke forblitt 5)")
+    }
+
+    @Test
+    fun `authRateLimiter per-time kvote fullstendig toemt ved burst-angrep CGNAT`() {
+        val minuteLimiter = RateLimiter(maxAttempts = 5, windowMs = 60_000)
+        val hourLimiter = RateLimiter(maxAttempts = 10, windowMs = 3_600_000)
+        val limiter = CompositeRateLimiter(minuteLimiter, hourLimiter)
+
+        // Angriper sender 10 kall: 5 tillatte + 5 blokkerte av per-minutt
+        repeat(5) { limiter.isAllowed("ip1") }  // tillatte
+        repeat(5) { limiter.isAllowed("ip1") }  // blokkerte av minutt, men registrert i time
+
+        // Per-time-kvoten er fullstendig uttomt etter kun 10 kall over f.eks. 2 minutter
+        assertEquals(0, hourLimiter.remainingAttempts("ip1"),
+            "Per-time-kvoten er toemt etter 5 tillatte + 5 blokkerte per-minutt-kall")
+        // Konsekvens: legitime brukere bak samme IP (CGNAT) er ogsaa blokkert i resten av time-vinduet
+    }
+
+    @Test
     fun `CompositeRateLimiter krever minst en limiter`() {
         try {
             CompositeRateLimiter()

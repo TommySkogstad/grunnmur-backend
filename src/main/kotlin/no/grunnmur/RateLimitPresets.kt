@@ -25,7 +25,13 @@ class CompositeRateLimiter(private vararg val limiters: RateLimiter) {
 
     /**
      * Sjekker om en noekkel er tillatt av ALLE limitere.
-     * Registrerer forsoeket i alle limitere uavhengig av resultat.
+     * Registrerer forsoeket i alle limitere uavhengig av resultat —
+     * ogsaa i limitere som ennaa ikke har blokkert.
+     *
+     * Konsekvens ved burst-angrep: blokkerte kall tapper alle kvoter parallelt.
+     * Med authRateLimiter() (5/min + 10/time) toommer 5 tillatte + 5 blokkerte
+     * per-minutt-kall per-time-kvoten fullstendig. Vurder stoerrelsen paa
+     * per-time-presets for scenarioer der mange brukere deler IP (CGNAT, kontor).
      */
     fun isAllowed(key: String): Boolean {
         var allowed = true
