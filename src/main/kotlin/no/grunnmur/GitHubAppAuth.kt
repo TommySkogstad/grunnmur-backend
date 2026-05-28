@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.Closeable
 import java.security.KeyFactory
+import java.security.spec.InvalidKeySpecException
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Base64
 
@@ -38,6 +39,8 @@ open class GitHubAppAuth(
     private val client by clientLazy
 
     private val refreshMutex = Mutex()
+
+    private val privateKey by lazy { parsePrivateKey(privateKeyPem) }
 
     @Volatile
     protected var cachedToken: String? = null
@@ -101,7 +104,6 @@ open class GitHubAppAuth(
             .encodeToString("""{"iat":${now - 60},"exp":${now + 600},"iss":"$appId"}""".toByteArray())
 
         val signingInput = "$header.$payload"
-        val privateKey = parsePrivateKey(privateKeyPem)
         val signature = java.security.Signature.getInstance("SHA256withRSA").apply {
             initSign(privateKey)
             update(signingInput.toByteArray())
@@ -121,50 +123,42 @@ open class GitHubAppAuth(
 
         val keyBytes = Base64.getDecoder().decode(stripped)
 
-        // Proev PKCS8 foerst, deretter PKCS1 (RSA PRIVATE KEY)
         return try {
             KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(keyBytes))
-        } catch (_: Exception) {
-            // PKCS1 format — wrap i PKCS8
+        } catch (_: InvalidKeySpecException) {
             val pkcs8Bytes = wrapPkcs1InPkcs8(keyBytes)
             KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(pkcs8Bytes))
         }
     }
 
     /**
-     * Wrapper en PKCS1 RSA-noekkel i PKCS8-format.
-     * GitHub App private keys er typisk i PKCS1 (BEGIN RSA PRIVATE KEY).
+     * Wrapper en PKCS1 RSA-noekkel (BEGIN RSA PRIVATE KEY) i PKCS8-format (RFC 5958).
+     * Bruker korrekt BER-lengdekoding via asn1EncodeLength.
      */
     private fun wrapPkcs1InPkcs8(pkcs1Bytes: ByteArray): ByteArray {
-        // PKCS8 header for RSA
-        val pkcs8Header = byteArrayOf(
-            0x30.toByte(), 0x82.toByte(), 0x00.toByte(), 0x00.toByte(), // SEQUENCE (placeholder length)
-            0x02.toByte(), 0x01.toByte(), 0x00.toByte(),                // INTEGER 0
-            0x30.toByte(), 0x0D.toByte(),                                // SEQUENCE
-            0x06.toByte(), 0x09.toByte(),                                // OID
+        val rsaOid = byteArrayOf(
+            0x06.toByte(), 0x09.toByte(),
             0x2A.toByte(), 0x86.toByte(), 0x48.toByte(), 0x86.toByte(),
-            0xF7.toByte(), 0x0D.toByte(), 0x01.toByte(), 0x01.toByte(),
-            0x01.toByte(),                                               // rsaEncryption
-            0x05.toByte(), 0x00.toByte(),                                // NULL
-            0x04.toByte(), 0x82.toByte(), 0x00.toByte(), 0x00.toByte()  // OCTET STRING (placeholder length)
+            0xF7.toByte(), 0x0D.toByte(), 0x01.toByte(), 0x01.toByte(), 0x01.toByte()
         )
-
-        val totalLen = pkcs8Header.size - 4 + pkcs1Bytes.size
-        val octetLen = pkcs1Bytes.size
-
-        val result = ByteArray(4 + totalLen)
-        System.arraycopy(pkcs8Header, 0, result, 0, pkcs8Header.size)
-        System.arraycopy(pkcs1Bytes, 0, result, pkcs8Header.size, pkcs1Bytes.size)
-
-        // Fix SEQUENCE length
-        result[2] = ((totalLen shr 8) and 0xFF).toByte()
-        result[3] = (totalLen and 0xFF).toByte()
-
-        // Fix OCTET STRING length
-        val octetLenOffset = pkcs8Header.size - 2
-        result[octetLenOffset] = ((octetLen shr 8) and 0xFF).toByte()
-        result[octetLenOffset + 1] = (octetLen and 0xFF).toByte()
-
-        return result
+        val algorithmIdentifier = asn1Sequence(rsaOid + byteArrayOf(0x05.toByte(), 0x00.toByte()))
+        val version = byteArrayOf(0x02.toByte(), 0x01.toByte(), 0x00.toByte())
+        val privateKeyOctetString = asn1OctetString(pkcs1Bytes)
+        return asn1Sequence(version + algorithmIdentifier + privateKeyOctetString)
     }
+
+    internal fun asn1EncodeLength(length: Int): ByteArray {
+        require(length in 0..0xFFFF) { "ASN.1 lengde støtter maks 65535, fikk $length" }
+        return when {
+            length <= 0x7F -> byteArrayOf(length.toByte())
+            length <= 0xFF -> byteArrayOf(0x81.toByte(), length.toByte())
+            else -> byteArrayOf(0x82.toByte(), (length shr 8).toByte(), (length and 0xFF).toByte())
+        }
+    }
+
+    private fun asn1Sequence(content: ByteArray): ByteArray =
+        byteArrayOf(0x30.toByte()) + asn1EncodeLength(content.size) + content
+
+    private fun asn1OctetString(content: ByteArray): ByteArray =
+        byteArrayOf(0x04.toByte()) + asn1EncodeLength(content.size) + content
 }
