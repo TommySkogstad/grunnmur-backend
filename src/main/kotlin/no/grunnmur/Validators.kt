@@ -160,17 +160,54 @@ object Validators {
         return ValidationResult.valid()
     }
 
+    // Sesongpassord: (sesong|maned)(2-4 siffer)(valgfritt symbol)
+    private val SEASONAL_REGEX = Regex(
+        "^(?:summer|sommer|autumn|fall|haust|winter|vinter|spring|var|vaar|jul|" +
+        "paske|paaske|januar|februar|mars|april|mai|juni|juli|august|" +
+        "september|oktober|november|desember|" +
+        "jan|feb|apr|jun|aug|sep|okt|nov|des)" +
+        "\\d{2,4}[!?.@#\$%&*]?\$",
+        RegexOption.IGNORE_CASE
+    )
+
+    // Fallback-liste hvis ressursfilen mangler fra classpath
+    private val COMMON_PASSWORDS_FALLBACK = setOf(
+        "password", "passord", "12345678", "qwerty123",
+        "hemmelig", "fotball", "iloveyou", "sunshine",
+        "welcome", "letmein", "master12", "dragon12"
+    )
+
+    private val commonPasswordSet: Set<String> by lazy {
+        try {
+            Validators::class.java.getResourceAsStream("/common-passwords.txt")
+                ?.bufferedReader(Charsets.UTF_8)
+                ?.use { reader ->
+                    reader.readLines()
+                        .map { it.trim().lowercase() }
+                        .filter { it.isNotEmpty() && !it.startsWith("#") }
+                        .toHashSet()
+                } ?: COMMON_PASSWORDS_FALLBACK
+        } catch (_: Exception) {
+            COMMON_PASSWORDS_FALLBACK
+        }
+    }
+
     /**
      * Validerer passordstyrke.
      * Krav: minst 8 tegn, minst en bokstav og ett tall.
+     * Avviser vanlige passord og sesongmønstre (f.eks. Summer2026!).
      */
     fun validatePassword(password: String): ValidationResult {
         val errors = mutableListOf<String>()
         if (password.length < 8) errors.add("Passord maa vaere minst 8 tegn")
         if (!password.any { it.isLetter() }) errors.add("Passord maa inneholde minst en bokstav")
         if (!password.any { it.isDigit() }) errors.add("Passord maa inneholde minst ett tall")
-        val commonPasswords = listOf("password", "passord", "12345678", "qwerty123")
-        if (commonPasswords.any { password.lowercase().contains(it) }) errors.add("Passord er for enkelt")
+
+        val lower = password.lowercase()
+        val isCommon = commonPasswordSet.contains(lower) ||
+            commonPasswordSet.any { it.length >= 6 && lower.contains(it) }
+        if (isCommon || SEASONAL_REGEX.matches(lower)) errors.add("Passord er for enkelt")
+
         return if (errors.isEmpty()) ValidationResult.valid() else ValidationResult(false, errors)
     }
 
