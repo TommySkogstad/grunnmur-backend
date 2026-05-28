@@ -8,8 +8,12 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.Closeable
 import java.net.InetSocketAddress
+import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.Signature
+import java.security.interfaces.RSAPrivateCrtKey
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.RSAPublicKeySpec
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -232,30 +236,38 @@ class GitHubAppAuthTest {
         }
 
         @Test
-        fun `PKCS1-noekkel (BEGIN RSA PRIVATE KEY) lager gyldig JWT-signatur som verifiseres med public key`() {
-            val kp = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
-            val pkcs8Encoded = kp.private.encoded
-
-            // Pakk ut PKCS1-bytes fra PKCS8-wrappingen (inner OCTET STRING er alltid siste del)
-            // Bruk GitHubAppAuth sin wrapping i revers: parse PKCS8, hent raw bytes, wrap i PEM
-            // I stedet: generer noekkelpar, la GitHubAppAuth bruke PKCS8-PEM, verifiser signatur.
-            // For PKCS1-banen: testPrivateKey er allerede en gyldig PKCS1-noekkel og dekker banen.
-            // Denne testen bruker generert PKCS8 for aa verifisere ende-til-ende.
-            val pkcs8Pem = "-----BEGIN PRIVATE KEY-----\n" +
-                Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(pkcs8Encoded) +
-                "\n-----END PRIVATE KEY-----"
-
-            val auth = GitHubAppAuth("app123", pkcs8Pem, "inst456")
+        fun `PKCS1-noekkel (BEGIN RSA PRIVATE KEY) bruker wrapPkcs1InPkcs8 og lager gyldig JWT-signatur`() {
+            // Bruker testPrivateKey (PKCS1) og rekonstruerer public key via RSAPrivateCrtKey
+            val auth = GitHubAppAuth("123456", testPrivateKey, "789")
             val jwt = auth.createJwt()
-            val parts = jwt.split(".")
+            val (header, payload, sigB64) = jwt.split(".")
+
+            // Bygg PKCS8 fra PKCS1 test-nøkkelen for å rekonstruere public key
+            val pkcs1Bytes = Base64.getDecoder().decode(
+                testPrivateKey
+                    .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                    .replace("-----END RSA PRIVATE KEY-----", "")
+                    .replace("\\s".toRegex(), "")
+            )
+            val rsaOid = byteArrayOf(
+                0x06, 0x09,
+                0x2A.toByte(), 0x86.toByte(), 0x48.toByte(), 0x86.toByte(),
+                0xF7.toByte(), 0x0D, 0x01, 0x01, 0x01
+            )
+            fun seq(c: ByteArray) = byteArrayOf(0x30) + auth.asn1EncodeLength(c.size) + c
+            fun oct(c: ByteArray) = byteArrayOf(0x04) + auth.asn1EncodeLength(c.size) + c
+            val pkcs8 = seq(byteArrayOf(0x02, 0x01, 0x00) + seq(rsaOid + byteArrayOf(0x05, 0x00)) + oct(pkcs1Bytes))
+
+            val privKey = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(pkcs8)) as RSAPrivateCrtKey
+            val pubKey = KeyFactory.getInstance("RSA").generatePublic(RSAPublicKeySpec(privKey.modulus, privKey.publicExponent))
 
             val verifier = Signature.getInstance("SHA256withRSA").apply {
-                initVerify(kp.public)
-                update("${parts[0]}.${parts[1]}".toByteArray())
+                initVerify(pubKey)
+                update("$header.$payload".toByteArray())
             }
             assertTrue(
-                verifier.verify(Base64.getUrlDecoder().decode(parts[2])),
-                "JWT-signatur skal validere med public key"
+                verifier.verify(Base64.getUrlDecoder().decode(sigB64)),
+                "JWT-signatur fra PKCS1-noekkel (via wrapPkcs1InPkcs8) skal validere med tilsvarende public key"
             )
         }
     }
