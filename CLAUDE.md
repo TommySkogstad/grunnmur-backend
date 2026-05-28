@@ -3,7 +3,7 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle.
 
-Sist oppdatert: 2026-05-14
+Sist oppdatert: 2026-05-28
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -49,7 +49,7 @@ val limiter = CompositeRateLimiter(
     RateLimiter(maxAttempts = 10, windowMs = 3_600_000)
 )
 ```
-- `isAllowed(key: String): Boolean` — alle limitere maa tillate
+- `isAllowed(key: String): Boolean` — alle limitere maa tillate. Registrerer forsoeket i alle limitere uavhengig av resultat — ogsaa i limitere som ennaa ikke har blokkert. Ved burst-angrep: blokkerte kall tapper alle kvoter parallelt.
 - `reset(key: String)` — nullstiller alle
 - `remainingAttempts(key: String): Int` — minimum av alle
 - `retryAfterSeconds(key: String): Long?` — maksimum av alle
