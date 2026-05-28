@@ -209,7 +209,7 @@ if (!result.isValid) println(result.errors)
 | `validateTextField` | `(value?, fieldName, required, minLength, maxLength): ValidationResult` | Generelt tekstfelt |
 | `validateSearchQuery` | `(query: String?, maxLength: Int = 100): ValidationResult` | Soekestreng med SQL-injeksjonsbeskyttelse |
 | `validateOrganizationNumber` | `(orgNumber: String?): ValidationResult` | Norsk org.nr (9 siffer) |
-| `validatePassword` | `(password: String): ValidationResult` | Min 8 tegn, bokstav + tall, blokkerer vanlige |
+| `validatePassword` | `(password: String): ValidationResult` | Min 8 tegn, bokstav + tall, blokkerer vanlige passord og sesongmønstre (f.eks. Summer2026, Januar2025) |
 | `sanitizeHtml` | `(input: String): String` | Erstatter HTML-spesialtegn |
 
 #### InputSanitizer (`InputSanitizer.kt`)

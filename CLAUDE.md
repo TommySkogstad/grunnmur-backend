@@ -195,7 +195,7 @@ Ren Kotlin (ingen Ktor/Exposed). Returnerer `ValidationResult(isValid: Boolean, 
 - `validateTextField(value?, fieldName, required, minLength, maxLength): ValidationResult`
 - `validateSearchQuery(query?, maxLength = 100): ValidationResult` — SQL-injeksjonsbeskyttelse
 - `validateOrganizationNumber(orgNumber?): ValidationResult` — 9 siffer
-- `validatePassword(password: String): ValidationResult` — 8+ tegn, bokstav+tall, blokkerer vanlige
+- `validatePassword(password: String): ValidationResult` — 8+ tegn, bokstav+tall, blokkerer vanlige passord og sesongmønstre (f.eks. Summer2026, Januar2025)
 - `sanitizeHtml(input: String): String` — erstatter <>&"' med HTML-entiteter
 
 #### InputSanitizer (`InputSanitizer.kt`) — object
