@@ -182,6 +182,7 @@ class ValidatorsTest {
         @Test
         fun `gyldig passord`() {
             assertTrue(Validators.validatePassword("Sikker123").isValid)
+            assertTrue(Validators.validatePassword("KompleksT8kst!").isValid)
         }
 
         @Test
@@ -200,6 +201,20 @@ class ValidatorsTest {
         fun `mangler bokstav eller tall`() {
             assertFalse(Validators.validatePassword("12345678").isValid)
             assertFalse(Validators.validatePassword("abcdefgh").isValid)
+        }
+
+        @Test
+        fun `norske vanlige passord avvises`() {
+            assertFalse(Validators.validatePassword("Passord123").isValid)
+            assertFalse(Validators.validatePassword("hemmelig1").isValid)
+            assertFalse(Validators.validatePassword("fotball12").isValid)
+        }
+
+        @Test
+        fun `sesongpassord avvises`() {
+            assertFalse(Validators.validatePassword("Summer2026!").isValid)
+            assertFalse(Validators.validatePassword("Vinter2025").isValid)
+            assertFalse(Validators.validatePassword("sommer2024").isValid)
         }
     }
 
