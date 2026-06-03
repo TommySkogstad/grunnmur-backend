@@ -300,7 +300,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 - **Jakarta Mail**: 2.1.5 (compileOnly)
 - **Flyway**: 11.19.1 (compileOnly — pinnet pga bug i 11.20.3/12.x)
 - **kotlin-onetimepassword**: 2.4.1 (compileOnly + testImplementation)
-- **SLF4J**: 2.0.17 (compileOnly)
+- **SLF4J**: 2.0.18 (compileOnly)
 - **JVM**: 25
 - **Tester**: JUnit 5.14.4
 
