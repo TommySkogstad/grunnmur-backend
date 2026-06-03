@@ -45,6 +45,77 @@ loginLimiter.reset(clientIp) // Etter vellykket login
 | `clear` | `()` | Nullstill alt (kun testing) |
 | `size` | `(): Int` | Antall aktive entries |
 
+#### RateLimitPresets (`RateLimitPresets.kt`)
+Ferdigkonfigurerte rate limitere for vanlige bruksscenarier. Bygger på `RateLimiter`.
+
+**CompositeRateLimiter** — sjekker flere vinduer (alle må tillate):
+
+```kotlin
+val limiter = CompositeRateLimiter(
+    RateLimiter(maxAttempts = 5, windowMs = 60_000),      // 5/min
+    RateLimiter(maxAttempts = 10, windowMs = 3_600_000)   // 10/time
+)
+if (!limiter.isAllowed(clientIp)) throw RateLimitException()
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `isAllowed` | `(key: String): Boolean` | Sjekker alle limitere, registrerer forsøk i alle |
+| `reset` | `(key: String)` | Nullstiller alle limitere for nøkkelen |
+| `remainingAttempts` | `(key: String): Int` | Minimum gjenstående på tvers av alle |
+| `retryAfterSeconds` | `(key: String): Long?` | Maksimum retry-tid på tvers av alle |
+
+**AuthRateLimiter** — kombinerer IP-basert og identifikator-basert limiting (identifikatorer hashes med SHA-256):
+
+```kotlin
+val limiter = authRateLimiterWithIdentifier()
+
+post("/api/auth/send-otp") {
+    val ip = call.getClientIp()
+    val phone = call.receive<OtpRequest>().phone
+    call.checkRateLimit(
+        limiter.isAllowed(ip, phone),
+        retryAfterSeconds = limiter.retryAfterSeconds(ip, phone)
+    )
+}
+```
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `isAllowed` | `(ip: String, identifier: String): Boolean` | Begge må tillate |
+| `reset` | `(ip: String, identifier: String)` | Nullstiller begge |
+| `remainingAttempts` | `(ip: String, identifier: String): Int` | Minimum av begge |
+| `retryAfterSeconds` | `(ip: String, identifier: String): Long?` | Maksimum av begge |
+
+**Preset-funksjoner:**
+
+| Funksjon | Standard | Beskrivelse |
+|----------|----------|-------------|
+| `authRateLimiter()` | 5/min + 10/time per IP | For send-otp, verify-otp — returnerer `CompositeRateLimiter` |
+| `authRateLimiterWithIdentifier()` | IP: 5/min + 10/time, identifikator: 5/15min | For send-otp med telefon/e-post — returnerer `AuthRateLimiter` |
+| `apiRateLimiterAuthenticated()` | 60/min per IP | For autentiserte API-ruter — returnerer `RateLimiter` |
+| `apiRateLimiterAnonymous()` | 20/min per IP | For åpne API-ruter — returnerer `RateLimiter` |
+
+```kotlin
+// Opprett én gang ved appstart
+val authLimiter = authRateLimiter()
+val apiLimiterAuth = apiRateLimiterAuthenticated()
+val apiLimiterAnon = apiRateLimiterAnonymous()
+
+// Auth-ruter
+post("/api/auth/send-otp") {
+    val ip = call.getClientIp()
+    call.checkRateLimit(authLimiter.isAllowed(ip), retryAfterSeconds = authLimiter.retryAfterSeconds(ip))
+}
+
+// API-ruter
+get("/api/data") {
+    val ip = call.getClientIp()
+    val limiter = if (call.getUserId() != null) apiLimiterAuth else apiLimiterAnon
+    call.checkRateLimit(limiter.isAllowed(ip))
+}
+```
+
 #### EncryptionUtils (`EncryptionUtils.kt`)
 AES-256-GCM-kryptering med hex-nokler (64 hex-tegn = 32 bytes). Output: Base64(IV + ciphertext + GCM-tag).
 
