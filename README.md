@@ -6,8 +6,6 @@
 
 <p align="center">Felles Kotlin-bibliotek for Ktor-appene i portefoljen.<br>Standardiserer patterns som tidligere var duplisert med variasjoner mellom apper.</p>
 
-<p align="center"><em>Sist oppdatert: 2026-05-14</em></p>
-
 ---
 
 ## Moduloversikt
