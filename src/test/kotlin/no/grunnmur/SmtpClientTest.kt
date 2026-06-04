@@ -495,6 +495,30 @@ class SmtpClientTest {
     }
 
     @Nested
+    inner class CloseableKontract {
+
+        @Test
+        fun `SmtpClient implementerer Closeable`() {
+            val client: Any = SmtpClient(testConfig) { }
+            assertTrue(client is java.io.Closeable, "SmtpClient skal implementere Closeable")
+        }
+
+        @Test
+        fun `close kaster ikke`() {
+            val client = SmtpClient(testConfig) { }
+            client.close()
+        }
+
+        @Test
+        fun `SmtpClient kan brukes i use-blokk`() = runBlocking {
+            SmtpClient(testConfig) { }.use { client ->
+                val result = client.send(EmailMessage(to = "a@example.com", subject = "use-test", body = "test"))
+                assertTrue(result.success)
+            }
+        }
+    }
+
+    @Nested
     inner class Konfigurasjon {
 
         @Test
