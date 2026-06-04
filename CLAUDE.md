@@ -3,7 +3,7 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle.
 
-Sist oppdatert: 2026-05-28
+Sist oppdatert: 2026-06-04
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -130,8 +130,8 @@ TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, +-2 vinduer tol
 One-Time Password med SHA-256. Dev-modus: kode "123456" fungerer alltid. Lagring/utsending er appens ansvar.
 
 - `generateCode(): String` — 6-sifret (100000-999999)
-- `hashCode(code: String): String` — SHA-256, 64 hex-tegn
-- `verify(code, storedHash, expiresAt, attempts, maxAttempts = 3, devMode = false): OtpVerificationResult`
+- `hashCode(code: String, salt: String = ""): String` — SHA-256, 64 hex-tegn. Salt beskytter mot forhåndsberegnede regnbuetabeller. Tom salt gir bakoverkompatibel oppførsel, men anbefales ikke for nye installasjoner.
+- `verify(code, storedHash, expiresAt, attempts, maxAttempts = 3, devMode = false, salt: String = ""): OtpVerificationResult` — Verifiserer kode med samme salt som brukt ved hashing.
 
 `OtpVerificationResult` (sealed class): `Success`, `InvalidCode`, `Expired`, `TooManyAttempts`
 

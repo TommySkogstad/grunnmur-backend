@@ -153,19 +153,19 @@ val ok = TotpService.verifyTotp(encryptedSecret, encryptionKey, "123456", devMod
 | `disableTotp` | `(): Triple<Boolean, String?, String?>` | Null-verdier for deaktivering |
 
 #### OtpUtils (`OtpUtils.kt`)
-OTP-haandtering (One-Time Password) med SHA-256-hashing. Dev-modus: kode "123456" fungerer alltid.
+OTP-haandtering (One-Time Password) med SHA-256-hashing. Dev-modus: kode "123456" fungerer alltid. Salt beskytter mot forhåndsberegnede regnbuetabeller.
 
 ```kotlin
-val code = OtpUtils.generateCode()         // "847291"
-val hash = OtpUtils.hashCode(code)         // SHA-256 hex
-val result = OtpUtils.verify(code, hash, expiresAt, attempts, devMode = true)
+val code = OtpUtils.generateCode()                           // "847291"
+val hash = OtpUtils.hashCode(code, salt = "app-secret")    // SHA-256 hex med salt
+val result = OtpUtils.verify(code, hash, expiresAt, attempts, salt = "app-secret", devMode = true)
 ```
 
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
 | `generateCode` | `(): String` | Tilfeldig 6-sifret kode (100000-999999) |
-| `hashCode` | `(code: String): String` | SHA-256 hash (64 hex-tegn) |
-| `verify` | `(code, storedHash, expiresAt, attempts, ...): OtpVerificationResult` | Verifiserer OTP |
+| `hashCode` | `(code: String, salt: String = ""): String` | SHA-256 hash (64 hex-tegn). Salt beskytter mot regnbuetabeller, tom salt gir bakoverkompatibilitet |
+| `verify` | `(code, storedHash, expiresAt, attempts, ..., salt: String = ""): OtpVerificationResult` | Verifiserer OTP med samme salt som hashing |
 
 **`OtpVerificationResult`** (sealed class): `Success`, `InvalidCode`, `Expired`, `TooManyAttempts`
 
