@@ -262,7 +262,7 @@ Konstruktoer: `GitHubAppAuth(appId: String, privateKeyPem: String, installationI
 Merk: Klassen er `open` og har `protected` cache-felt for aa tillate testing via subclass-overriding av `refreshToken()`.
 
 #### GitHubIssueRoutes (`GitHubIssueRoutes.kt`) — extension function paa Route
-Registrerer ruter for issue-opprettelse og GitHub webhook.
+Registrerer ruter for issue-opprettelse og GitHub webhook. POST /api/issues validerer: title, senderName, senderEmail (format via Validators.validateEmail), og description kreves; rate limiting per IP; multipart med valgfrie bilder.
 
 - `Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig)` — registrerer POST /api/issues og POST /api/issues/webhook
 
