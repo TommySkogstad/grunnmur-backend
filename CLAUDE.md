@@ -226,10 +226,11 @@ Felt: `OSLO_ZONE: ZoneId`, `isoDateTime: DateTimeFormatter`, `isoDate: DateTimeF
 ### Tjenester
 
 #### SmtpClient (`SmtpClient.kt`) — class
-Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende). **SMTP Session er cached og gjenbrukt** (ikke opprettet paa nytt per sending). STARTTLS og requireAuth er uavhengige — kan konfigureres separat.
+Jakarta Mail SMTP-klient. Stoetter plain text + HTML (multipart/alternative), vedlegg (multipart/mixed), traad-kobling (Message-ID/In-Reply-To/References), rate limiting mellom sendinger, dev-modus (logger i stedet for aa sende). **SMTP Session er cached og gjenbrukt** (ikke opprettet paa nytt per sending). STARTTLS og requireAuth er uavhengige — kan konfigureres separat. **Implementerer Closeable** — kan brukes i `use`-blokker eller lukkes eksplisitt med `close()`.
 
 - `send(message: EmailMessage, forceDelivery: Boolean = false): SendResult`
 - `sendWithMessageId(message: EmailMessage, messageId: String, forceDelivery: Boolean = false): SendResult`
+- `close()` — lukker klienten (Jakarta Mail Session holder ingen langlivde ressurser, men `close()` finnes for konsistens med `GitHubIssueService` og `GitHubAppAuth`)
 
 **SmtpConfig companion function:**
 - `SmtpConfig.fromEnv(getEnv: (String) -> String? = System::getenv): SmtpConfig` — leser config fra miljøvariabler (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_FROM_NAME, SMTP_REQUIRE_AUTH, SMTP_STARTTLS, SMTP_DEV_MODE, SMTP_TIMEOUT_MS, SMTP_MIN_INTERVAL_MS). Numeriske felt (SMTP_PORT, SMTP_TIMEOUT_MS, SMTP_MIN_INTERVAL_MS) valideres med `toIntOrNull()`/`toLongOrNull()` og gir beskrivende feilmeldinger ved ugyldig input. SMTP_STARTTLS kan settes uavhengig av SMTP_REQUIRE_AUTH for å håndtere self-signed sertifikater på Postfix.

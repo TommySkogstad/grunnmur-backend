@@ -156,7 +156,7 @@ data class SendResult(
 class SmtpClient(
     private val config: SmtpConfig,
     private val transportAction: ((MimeMessage) -> Unit)? = null
-) {
+) : java.io.Closeable {
     private val logger = LoggerFactory.getLogger(SmtpClient::class.java)
     private val sendLock = Mutex()
 
@@ -193,6 +193,10 @@ class SmtpClient(
         forceDelivery: Boolean = false
     ): SendResult {
         return doSend(message, forceDelivery, customMessageId = messageId)
+    }
+
+    override fun close() {
+        // Jakarta Mail Session holder ingen langlivde ressurser — close() finnes for konsistens med Closeable-kontrakten
     }
 
     private suspend fun doSend(
