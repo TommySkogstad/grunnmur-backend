@@ -61,6 +61,38 @@ class OtpUtilsTest {
             val hash = OtpUtils.hashCode(code)
             assertNotEquals(code, hash)
         }
+
+        @Test
+        fun `salt gir annen hash enn uten salt`() {
+            val code = "123456"
+            val hashUtenSalt = OtpUtils.hashCode(code)
+            val hashMedSalt = OtpUtils.hashCode(code, "app-salt-secret")
+            assertNotEquals(hashUtenSalt, hashMedSalt)
+        }
+
+        @Test
+        fun `forskjellige salter gir forskjellige hasher for samme kode`() {
+            val code = "123456"
+            val hash1 = OtpUtils.hashCode(code, "salt-A")
+            val hash2 = OtpUtils.hashCode(code, "salt-B")
+            assertNotEquals(hash1, hash2)
+        }
+
+        @Test
+        fun `salt og kode med delimiter er entydig`() {
+            // "a:bc" + kode != "a" + ":bc" + kode — delimiter skiller salt fra kode
+            val hash1 = OtpUtils.hashCode("456789", "ab")
+            val hash2 = OtpUtils.hashCode("56789", "ab4")
+            assertNotEquals(hash1, hash2, "salt-kode-grense skal ikke ambigeres")
+        }
+
+        @Test
+        fun `tom salt er bakoverkompatibel`() {
+            val code = "123456"
+            val hashDefault = OtpUtils.hashCode(code)
+            val hashTomSalt = OtpUtils.hashCode(code, "")
+            assertEquals(hashDefault, hashTomSalt, "tom salt skal gi samme hash som ingen salt")
+        }
     }
 
     @Nested
@@ -73,6 +105,27 @@ class OtpUtilsTest {
 
             val result = OtpUtils.verify(code, storedHash, expiry, attempts = 0)
             assertTrue(result is OtpVerificationResult.Success)
+        }
+
+        @Test
+        fun `gyldig kode med salt returnerer Success`() {
+            val code = "123456"
+            val salt = "app-spesifikk-salt"
+            val storedHash = OtpUtils.hashCode(code, salt)
+            val expiry = TimeUtils.nowOslo().plusMinutes(5)
+
+            val result = OtpUtils.verify(code, storedHash, expiry, attempts = 0, salt = salt)
+            assertTrue(result is OtpVerificationResult.Success)
+        }
+
+        @Test
+        fun `feil salt returnerer InvalidCode`() {
+            val code = "123456"
+            val storedHash = OtpUtils.hashCode(code, "riktig-salt")
+            val expiry = TimeUtils.nowOslo().plusMinutes(5)
+
+            val result = OtpUtils.verify(code, storedHash, expiry, attempts = 0, salt = "feil-salt")
+            assertTrue(result is OtpVerificationResult.InvalidCode)
         }
 
         @Test
@@ -154,6 +207,16 @@ class OtpUtilsTest {
 
             val result = OtpUtils.verify("123456", storedHash, expiry, attempts = 3, devMode = true)
             assertTrue(result is OtpVerificationResult.TooManyAttempts)
+        }
+
+        @Test
+        fun `dev-kode fungerer uavhengig av salt`() {
+            // devMode-grenen sjekker klartekst, ikke hash — salt skal ikke påvirke dev-koden
+            val storedHash = OtpUtils.hashCode("999888", "app-salt")
+            val expiry = TimeUtils.nowOslo().plusMinutes(5)
+
+            val result = OtpUtils.verify("123456", storedHash, expiry, attempts = 0, devMode = true, salt = "app-salt")
+            assertTrue(result is OtpVerificationResult.Success)
         }
     }
 }

@@ -34,9 +34,14 @@ object OtpUtils {
      * Returnerer 64 hex-tegn (lowercase).
      *
      * OTP-koder skal alltid lagres som hash, aldri i klartekst.
+     *
+     * @param salt App-spesifikk hemmelighet (f.eks. OTP_SALT fra .env) som beskytter mot
+     *             forhåndsberegnede regnbuetabeller. Tom streng gir bakoverkompatibel oppførsel
+     *             (usaltet), men bør unngås i nye installasjoner.
      */
-    fun hashCode(code: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(code.toByteArray(Charsets.UTF_8))
+    fun hashCode(code: String, salt: String = ""): String {
+        val input = if (salt.isEmpty()) code else "$salt:$code"
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
@@ -58,7 +63,8 @@ object OtpUtils {
         expiresAt: LocalDateTime,
         attempts: Int,
         maxAttempts: Int = DEFAULT_MAX_ATTEMPTS,
-        devMode: Boolean = false
+        devMode: Boolean = false,
+        salt: String = ""
     ): OtpVerificationResult {
         if (attempts >= maxAttempts) {
             return OtpVerificationResult.TooManyAttempts
@@ -72,7 +78,7 @@ object OtpUtils {
             return OtpVerificationResult.Success
         }
 
-        return if (hashCode(code) == storedHash) {
+        return if (hashCode(code, salt) == storedHash) {
             OtpVerificationResult.Success
         } else {
             OtpVerificationResult.InvalidCode
