@@ -156,6 +156,16 @@ class AuditLogServiceTest {
         }
 
         @Test
+        fun `findAll begrenser til MAX_LIMIT naar limit er Int MAX VALUE`() {
+            repeat(10) { i ->
+                service.log(userId = i, action = "A", entityType = "T")
+            }
+
+            val result = service.findAll(limit = Int.MAX_VALUE)
+            assertTrue(result.size <= AuditLogService.MAX_LIMIT, "Forventet maks ${AuditLogService.MAX_LIMIT} rader, fikk ${result.size}")
+        }
+
+        @Test
         fun `findAll respekterer offset`() {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "FIRST", "T", now.minusMinutes(2))

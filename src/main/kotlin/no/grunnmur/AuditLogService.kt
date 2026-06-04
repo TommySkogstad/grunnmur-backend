@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory
 class AuditLogService {
     private val log = LoggerFactory.getLogger(AuditLogService::class.java)
 
+    companion object {
+        const val MAX_LIMIT = 1000
+    }
+
     /**
      * Logger en handling til revisjonsloggen.
      * Feil i logging stopper ikke hovedoperasjonen.
@@ -66,12 +70,13 @@ class AuditLogService {
         limit: Int = 100,
         offset: Long = 0
     ): List<AuditLogEntry> {
+        val effectiveLimit = limit.coerceIn(1, MAX_LIMIT)
         return transaction {
             val query = AuditLogs.selectAll()
             applyFilters(query, action, entityType, userId, startDate, endDate)
             query
                 .orderBy(AuditLogs.createdAt, SortOrder.DESC)
-                .limit(limit).offset(offset)
+                .limit(effectiveLimit).offset(offset)
                 .map { it.toAuditLogEntry() }
         }
     }
