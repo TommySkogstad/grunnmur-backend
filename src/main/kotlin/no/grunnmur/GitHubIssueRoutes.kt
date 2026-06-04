@@ -118,6 +118,8 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
         if (title.isBlank()) throw BadRequestException("Tittel er paakrevd")
         if (senderName.isBlank()) throw BadRequestException("Avsendernavn er paakrevd")
         if (senderEmail.isBlank()) throw BadRequestException("Avsender-epost er paakrevd")
+        val emailValidation = Validators.validateEmail(senderEmail)
+        if (!emailValidation.isValid) throw BadRequestException(emailValidation.error ?: "Ugyldig e-postadresse")
         if (description.isBlank()) throw BadRequestException("Beskrivelse er paakrevd")
 
         val issueResponse = config.issueService.createIssue(

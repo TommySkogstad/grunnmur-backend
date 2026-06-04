@@ -1,11 +1,21 @@
 package no.grunnmur
 
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 class GitHubIssueRoutesTest {
 
@@ -73,6 +83,44 @@ class GitHubIssueRoutesTest {
             val payload = """{"action":"closed"}"""
 
             assertFalse(verifyWebhookSignature(payload.toByteArray(), "sha256=abc", secret))
+        }
+    }
+
+    @Nested
+    inner class PostIssueValidation {
+
+        private fun ApplicationTestBuilder.setupApp() {
+            val fakeService = GitHubIssueService(
+                GitHubIssueService.Config(token = "fake-token", repo = "fake/fake")
+            )
+            application {
+                install(ContentNegotiation) { json() }
+                install(StatusPages) { grunnmurExceptionHandlers() }
+                routing {
+                    gitHubIssueRoutes(GitHubIssueRoutesConfig(
+                        issueService = fakeService,
+                        imageService = null,
+                        rateLimiter = RateLimiter(maxAttempts = 100, windowMs = 60_000),
+                        webhookSecret = "test-secret"
+                    ))
+                }
+            }
+        }
+
+        @Test
+        fun `ugyldig e-post gir 400`() = testApplication {
+            setupApp()
+            val response = client.post("/api/issues") {
+                setBody(MultiPartFormDataContent(
+                    formData {
+                        append("title", "Test issue")
+                        append("senderName", "Test Bruker")
+                        append("senderEmail", "not-an-email")
+                        append("description", "En beskrivelse")
+                    }
+                ))
+            }
+            assertEquals(HttpStatusCode.BadRequest, response.status)
         }
     }
 
