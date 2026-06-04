@@ -172,7 +172,7 @@ Indekser: (entityType, entityId), (createdAt), (userId).
 Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Feil i logging stopper ikke hovedoperasjonen og logges med full stack trace.
 
 - `log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Long? = null, details: String? = null, ipAddress: String? = null)` — logger med `TimeUtils.nowOslo()`
-- `findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>` — startDate/endDate tolkes som Europe/Oslo datoer
+- `findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>` — startDate/endDate tolkes som Europe/Oslo datoer; limit clampes til [1, MAX_LIMIT] (MAX_LIMIT = 1000)
 - `count(action?, entityType?, userId?, startDate?, endDate?): Long` — startDate/endDate tolkes som Europe/Oslo datoer
 - `cleanupOldLogs(retentionDays: Int = 365): Int` — sletter logger eldre enn retentionDays basert på Oslo-tid
 
