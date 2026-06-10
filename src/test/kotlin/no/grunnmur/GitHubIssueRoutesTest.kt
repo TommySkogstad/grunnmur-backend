@@ -91,6 +91,28 @@ class GitHubIssueRoutesTest {
     }
 
     @Nested
+    inner class KeyRateLimiterInterface {
+
+        @Test
+        fun `GitHubIssueRoutesConfig tar imot CompositeRateLimiter som rateLimiter`() {
+            val compositeLimiter = CompositeRateLimiter(
+                RateLimiter(maxAttempts = 5, windowMs = 60_000),
+                RateLimiter(maxAttempts = 10, windowMs = 3_600_000)
+            )
+            val fakeService = GitHubIssueService(
+                GitHubIssueService.Config(token = "fake-token", repo = "fake/fake")
+            )
+            val config = GitHubIssueRoutesConfig(
+                issueService = fakeService,
+                imageService = null,
+                rateLimiter = compositeLimiter,
+                webhookSecret = "test-secret"
+            )
+            assertTrue(config.rateLimiter.isAllowed("127.0.0.1"))
+        }
+    }
+
+    @Nested
     inner class PostIssueValidation {
 
         private fun ApplicationTestBuilder.setupApp() {

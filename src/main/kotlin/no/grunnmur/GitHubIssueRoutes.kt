@@ -19,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec
 data class GitHubIssueRoutesConfig(
     val issueService: GitHubIssueService,
     val imageService: ImageUploadService?,
-    val rateLimiter: RateLimiter,
+    val rateLimiter: KeyRateLimiter,
     val webhookSecret: String
 )
 

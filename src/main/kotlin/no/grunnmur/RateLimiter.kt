@@ -3,6 +3,16 @@ package no.grunnmur
 import java.util.concurrent.ConcurrentHashMap
 
 /**
+ * Felles interface for enkle nøkkel-baserte rate limitere.
+ * Implementeres av [RateLimiter] og [CompositeRateLimiter].
+ * [AuthRateLimiter] er holdt utenfor da den bruker to nøkler (ip + identifikator).
+ */
+interface KeyRateLimiter {
+    fun isAllowed(key: String): Boolean
+    fun retryAfterSeconds(key: String): Long?
+}
+
+/**
  * In-memory rate limiter med sliding window og automatisk cleanup.
  *
  * Bruk:
@@ -23,7 +33,7 @@ class RateLimiter(
     private val maxAttempts: Int = 5,
     val windowMs: Long = 300_000,
     private val maxEntries: Int = 10_000
-) {
+) : KeyRateLimiter {
     private data class AttemptRecord(val count: Int, val windowStart: Long)
 
     private val attempts = ConcurrentHashMap<String, AttemptRecord>()
@@ -34,7 +44,7 @@ class RateLimiter(
      * Sjekker om en noekkel er tillatt og registrerer forsoekets.
      * Returnerer true hvis tillatt, false hvis blokkert.
      */
-    fun isAllowed(key: String): Boolean {
+    override fun isAllowed(key: String): Boolean {
         val now = System.currentTimeMillis()
         cleanup(now)
 
@@ -84,7 +94,7 @@ class RateLimiter(
      * Returnerer antall sekunder til vinduet utloeper for en blokkert noekkel.
      * Returnerer null hvis noekkel ikke er blokkert.
      */
-    fun retryAfterSeconds(key: String): Long? {
+    override fun retryAfterSeconds(key: String): Long? {
         val now = System.currentTimeMillis()
         val record = attempts[key] ?: return null
 
