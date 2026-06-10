@@ -18,7 +18,9 @@ import io.ktor.server.response.*
  * }
  * ```
  */
-fun StatusPagesConfig.grunnmurExceptionHandlers() {
+fun StatusPagesConfig.grunnmurExceptionHandlers(
+    isProduction: Boolean = System.getenv("KTOR_ENV") == "production"
+) {
     exception<BadRequestException> { call, cause ->
         call.respond(
             HttpStatusCode.BadRequest,
@@ -68,7 +70,7 @@ fun StatusPagesConfig.grunnmurExceptionHandlers() {
 
     exception<Throwable> { call, cause ->
         call.application.log.error("Uventet feil", cause)
-        val isProduction = System.getenv("KTOR_ENV") == "production"
+        // isProduction injisert via parameter – testbart uten å mutere prosess-env
         call.respond(
             HttpStatusCode.InternalServerError,
             mapOf(

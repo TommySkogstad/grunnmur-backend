@@ -26,6 +26,7 @@ class StatusPagesConfigTest {
                 get("/not-found") { throw NotFoundException("Fant ikke bruker") }
                 get("/forbidden") { throw ForbiddenException("Kun admin") }
                 get("/rate-limit") { throw RateLimitException("Vent litt") }
+                get("/rate-limit-retry") { throw RateLimitException("Vent litt", retryAfterSeconds = 30) }
                 get("/auth") { throw AuthenticationException("Ugyldig token") }
                 get("/illegal-arg") { throw IllegalArgumentException("Ugyldig argument") }
                 get("/unexpected") { throw RuntimeException("Noe gikk galt") }
@@ -77,6 +78,14 @@ class StatusPagesConfigTest {
         }
 
         @Test
+        fun `RateLimitException med retryAfterSeconds setter Retry-After-header`() = testApplication {
+            setupApp()
+            val response = client.get("/rate-limit-retry")
+            assertEquals(HttpStatusCode.TooManyRequests, response.status)
+            assertEquals("30", response.headers[HttpHeaders.RetryAfter])
+        }
+
+        @Test
         fun `AuthenticationException gir 401`() = testApplication {
             setupApp()
             val response = client.get("/auth")
@@ -109,6 +118,24 @@ class StatusPagesConfigTest {
             val response = client.get("/unexpected")
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             assertContains(response.bodyAsText(), "Noe gikk galt")
+        }
+
+        @Test
+        fun `500-feil i produksjonsmodus skjuler feildetaljer`() = testApplication {
+            application {
+                install(ContentNegotiation) { json() }
+                install(StatusPages) { grunnmurExceptionHandlers(isProduction = true) }
+                routing {
+                    get("/unexpected") { throw RuntimeException("Hemmelig intern feil") }
+                }
+            }
+            val response = client.get("/unexpected")
+            assertEquals(HttpStatusCode.InternalServerError, response.status)
+            val body = response.bodyAsText()
+            assertContains(body, "En feil oppstod")
+            assert(!body.contains("Hemmelig intern feil")) {
+                "Produksjonsmodus skal ikke eksponere feildetaljer, men fikk: $body"
+            }
         }
     }
 }
