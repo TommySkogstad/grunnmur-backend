@@ -147,10 +147,10 @@ One-Time Password med SHA-256. Dev-modus: kode "123456" fungerer alltid. Lagring
 - `getClientIp(): String` — sjekker CF-Connecting-IP -> X-Real-IP -> X-Forwarded-For -> remoteAddress
 
 #### StatusPagesConfig (`StatusPagesConfig.kt`) — extension function paa StatusPagesConfig
-`grunnmurExceptionHandlers()` — mapper grunnmur-exceptions til HTTP-statuskoder:
+`grunnmurExceptionHandlers(isProduction: Boolean = System.getenv("KTOR_ENV") == "production")` — mapper grunnmur-exceptions til HTTP-statuskoder:
 - BadRequestException -> 400, NotFoundException -> 404, ForbiddenException -> 403
-- RateLimitException -> 429, AuthenticationException -> 401
-- IllegalArgumentException -> 400, Throwable -> 500 (skjuler detaljer i prod via KTOR_ENV=production)
+- RateLimitException -> 429 (med `Retry-After`-header ved tilgjengelig), AuthenticationException -> 401
+- IllegalArgumentException -> 400, Throwable -> 500 (skjuler detaljer i prod når `isProduction=true`, viser exception-melding i dev)
 
 ### Database
 
