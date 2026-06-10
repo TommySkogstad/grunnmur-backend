@@ -36,6 +36,14 @@ class ValidatorsTest {
             assertFalse(Validators.isValidEmail("ugyldig"))
             assertFalse(Validators.isValidEmail(""))
         }
+
+        @Test
+        fun `single-label domener avvises`() {
+            assertFalse(Validators.validateEmail("a@b").isValid)
+            assertFalse(Validators.validateEmail("user@localhost").isValid)
+            assertFalse(Validators.isValidEmail("a@b"))
+            assertFalse(Validators.isValidEmail("user@localhost"))
+        }
     }
 
     @Nested
