@@ -186,7 +186,7 @@ Revisjonslogging med streng-basert action/entityType (apper definerer egne enums
 #### Validators (`Validators.kt`) — object
 Ren Kotlin (ingen Ktor/Exposed). Returnerer `ValidationResult(isValid: Boolean, errors: List<String>)`.
 
-- `validateEmail(email: String): ValidationResult` — RFC 5322 forenklet
+- `validateEmail(email: String): ValidationResult` — RFC 5322 forenklet. Krever minst ett punkt i domenet (avviser single-label domener som `a@b`, `user@localhost`)
 - `isValidEmail(email: String): Boolean`
 - `validatePhone(phone: String?, strict: Boolean = true): ValidationResult` — strict = norsk 8-sifret
 - `isValidPhone(phone: String): Boolean` — liberalt format
