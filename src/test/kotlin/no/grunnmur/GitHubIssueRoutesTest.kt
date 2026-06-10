@@ -1,7 +1,9 @@
 package no.grunnmur
 
+import com.sun.net.httpserver.HttpServer
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -9,10 +11,12 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
+import java.net.InetSocketAddress
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
@@ -121,6 +125,56 @@ class GitHubIssueRoutesTest {
                 ))
             }
             assertEquals(HttpStatusCode.BadRequest, response.status)
+        }
+
+        @Test
+        fun `gyldig multipart-forespørsel oppretter issue og returnerer 201`() {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/repos/fake/fake/issues") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val responseBody = """{"number":42,"html_url":"https://github.com/fake/fake/issues/42"}""".toByteArray()
+                exchange.responseHeaders.add("Content-Type", "application/json")
+                exchange.sendResponseHeaders(201, responseBody.size.toLong())
+                exchange.responseBody.use { it.write(responseBody) }
+            }
+            server.start()
+            val port = server.address.port
+            try {
+                testApplication {
+                    val fakeService = GitHubIssueService(
+                        GitHubIssueService.Config(token = "fake-token", repo = "fake/fake"),
+                        "http://localhost:$port"
+                    )
+                    application {
+                        install(ContentNegotiation) { json() }
+                        install(StatusPages) { grunnmurExceptionHandlers() }
+                        routing {
+                            gitHubIssueRoutes(GitHubIssueRoutesConfig(
+                                issueService = fakeService,
+                                imageService = null,
+                                rateLimiter = RateLimiter(maxAttempts = 100, windowMs = 60_000),
+                                webhookSecret = "test-secret"
+                            ))
+                        }
+                    }
+                    val response = client.post("/api/issues") {
+                        setBody(MultiPartFormDataContent(
+                            formData {
+                                append("title", "Testfeil i systemet")
+                                append("senderName", "Test Bruker")
+                                append("senderEmail", "test@example.com")
+                                append("description", "Noe er galt med innloggingen")
+                            }
+                        ))
+                    }
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val responseText = response.bodyAsText()
+                    assertContains(responseText, "\"issueNumber\":42")
+                    assertContains(responseText, "https://github.com/fake/fake/issues/42")
+                }
+            } finally {
+                server.stop(0)
+            }
         }
     }
 
