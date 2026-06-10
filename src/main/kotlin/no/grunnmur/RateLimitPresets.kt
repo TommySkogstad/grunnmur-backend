@@ -17,7 +17,7 @@ import java.security.MessageDigest
  * }
  * ```
  */
-class CompositeRateLimiter(private vararg val limiters: RateLimiter) {
+class CompositeRateLimiter(private vararg val limiters: RateLimiter) : KeyRateLimiter {
 
     init {
         require(limiters.isNotEmpty()) { "CompositeRateLimiter krever minst én limiter" }
@@ -33,7 +33,7 @@ class CompositeRateLimiter(private vararg val limiters: RateLimiter) {
      * per-minutt-kall per-time-kvoten fullstendig. Vurder stoerrelsen paa
      * per-time-presets for scenarioer der mange brukere deler IP (CGNAT, kontor).
      */
-    fun isAllowed(key: String): Boolean {
+    override fun isAllowed(key: String): Boolean {
         var allowed = true
         for (limiter in limiters) {
             if (!limiter.isAllowed(key)) {
@@ -61,7 +61,7 @@ class CompositeRateLimiter(private vararg val limiters: RateLimiter) {
      * Returnerer maksimum retry-after-tid paa tvers av alle limitere.
      * Returnerer null hvis ingen limiter er blokkert.
      */
-    fun retryAfterSeconds(key: String): Long? {
+    override fun retryAfterSeconds(key: String): Long? {
         return limiters.mapNotNull { it.retryAfterSeconds(key) }.maxOrNull()
     }
 }
