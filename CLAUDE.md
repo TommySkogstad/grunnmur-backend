@@ -22,7 +22,13 @@ install(GrunnmurCsrf) {
 
 Eksporterer: `GrunnmurCsrf` (plugin), `CsrfConfig` (class)
 
-#### RateLimiter (`RateLimiter.kt`) — class
+#### KeyRateLimiter (`RateLimiter.kt`) — interface
+Felles interface for enkle nøkkel-baserte rate limitere. Implementeres av `RateLimiter` og `CompositeRateLimiter`. `AuthRateLimiter` holdes utenfor da den bruker to nøkler (IP + identifikator).
+
+- `isAllowed(key: String): Boolean`
+- `retryAfterSeconds(key: String): Long?`
+
+#### RateLimiter (`RateLimiter.kt`) — class : KeyRateLimiter
 In-memory sliding window rate limiter. Atomisk sjekk+oppdatering via `compute()` (garantert ikke overstige maxAttempts under parallell load). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
 
 ```kotlin
@@ -40,7 +46,7 @@ val limiter = RateLimiter(maxAttempts = 5, windowMs = 300_000, maxEntries = 10_0
 #### RateLimitPresets (`RateLimitPresets.kt`) — funksjoner og class
 Ferdigkonfigurerte rate limitere for vanlige bruksscenarier. Bygger paa RateLimiter.
 
-**CompositeRateLimiter** — sjekker flere vinduer (alle maa tillate):
+**CompositeRateLimiter** — sjekker flere vinduer (alle maa tillate), implementerer `KeyRateLimiter`:
 ```kotlin
 val limiter = CompositeRateLimiter(
     RateLimiter(maxAttempts = 5, windowMs = 60_000),
@@ -269,7 +275,9 @@ Hjelpefunksjoner:
 - `verifyWebhookSignature(payload: ByteArray, signature: String, secret: String): Boolean` — HMAC-SHA256
 - `parseWebhookAction(payload: String): Pair<String, Int>?` — (action, issueNumber)
 
-Dataklasser: `GitHubIssueRoutesConfig`, `CreateIssueResponse`
+Dataklasser:
+- `GitHubIssueRoutesConfig(issueService, imageService?, rateLimiter: KeyRateLimiter, webhookSecret)` — bruker `KeyRateLimiter` interface for fleksibilitet
+- `CreateIssueResponse(issueNumber, issueUrl, imageUrls?)`
 
 #### ImageUploadService (`ImageUploadService.kt`) — class
 Sikker bildeopplasting. Validerer filtype via magic bytes (PNG/JPEG/WEBP), haandhever stoerrelsesbegrensning, genererer tilfeldige filnavn (UUID).
