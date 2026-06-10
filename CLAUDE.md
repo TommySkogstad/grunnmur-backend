@@ -3,8 +3,6 @@
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
 Brukes av biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle.
 
-Sist oppdatert: 2026-06-04
-
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
 ### Auth og sikkerhet
@@ -294,7 +292,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 
 ## Teknisk
 
-- **Kotlin**: 2.3.21
+- **Kotlin**: 2.4.0
 - **Ktor**: 3.5.0 (compileOnly — Server + Client CIO)
 - **Exposed**: 1.3.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.11.0 (compileOnly)
@@ -406,6 +404,6 @@ Inntil da holdes versjonen fast. Dette er en bevisst avgjoerelse, ikke en glemt 
 ## Viktig
 
 - Ved Dependabot-oppgraderinger: oppgrader grunnmur FOERST, deretter alle 4 apper til samme versjoner
-- Kotlin metadata 2.3 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
+- Kotlin metadata 2.4 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
 - Exposed-versjoner maa vaere identiske mellom grunnmur og apper
 - **Kryssrepo-avhengigheter**: Grunnmur er et delt bibliotek. Naar ny funksjonalitet legges til, opprett GitHub issue paa grunnmur FOERST, deretter issues paa alle apper som skal bruke den nye modulen med `Blokkert av: TommySkogstad/grunnmur#nummer` i issue-bodyen. Issue-triage haandterer avhengighetsrekkefoeolgen automatisk — blokkerte issues venter til grunnmur-issuen er lukket.
