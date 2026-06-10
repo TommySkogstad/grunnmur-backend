@@ -62,6 +62,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     testImplementation("io.ktor:ktor-server-auth:$ktorVersion")
     testImplementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    testImplementation("com.auth0:java-jwt:4.5.2")
     testImplementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
 
     // Jakarta Mail (test — trenger implementasjon for å kjøre tester)
