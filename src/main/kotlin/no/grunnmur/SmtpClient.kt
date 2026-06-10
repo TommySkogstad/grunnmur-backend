@@ -6,9 +6,11 @@ import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.util.ByteArrayDataSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -222,12 +224,13 @@ class SmtpClient(
                     delay(config.minIntervalMs - elapsed)
                 }
 
-                mimeMessage.saveChanges()
-
-                if (transportAction != null) {
-                    transportAction.invoke(mimeMessage)
-                } else {
-                    Transport.send(mimeMessage)
+                withContext(Dispatchers.IO) {
+                    mimeMessage.saveChanges()
+                    if (transportAction != null) {
+                        transportAction.invoke(mimeMessage)
+                    } else {
+                        Transport.send(mimeMessage)
+                    }
                 }
 
                 lastSendTime = System.currentTimeMillis()

@@ -291,6 +291,22 @@ class SmtpClientTest {
     }
 
     @Nested
+    inner class DispatcherKontekst {
+
+        @Test
+        fun `transport-kallet kjores paa en IO-dispatcher-traad`() = runBlocking {
+            var threadName: String? = null
+            val client = SmtpClient(testConfig) { threadName = Thread.currentThread().name }
+            client.send(EmailMessage(to = "a@example.com", subject = "IO-test", body = "b"))
+            assertNotNull(threadName, "transportAction skal ha blitt kalt")
+            assertTrue(
+                threadName!!.contains("DefaultDispatcher") || threadName!!.contains("IO"),
+                "Transport skal kjøre på IO-dispatcher, var: $threadName"
+            )
+        }
+    }
+
+    @Nested
     inner class RateLimiting {
 
         @Test
