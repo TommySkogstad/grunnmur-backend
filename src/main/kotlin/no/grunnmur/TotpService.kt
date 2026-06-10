@@ -22,7 +22,7 @@ object TotpService {
     private const val DEV_TOTP_CODE = "123456"
     private const val TIME_STEP_SECONDS = 30
     private const val CODE_DIGITS = 6
-    private const val WINDOW_SIZE = 2 // ±2 vinduer (2 min toleranse)
+    private const val WINDOW_SIZE = 2 // ±2 vinduer = ±60 sekunder
 
     /**
      * Starter TOTP-oppsett — genererer hemmelighet og returnerer kryptert secret + QR-URI.
