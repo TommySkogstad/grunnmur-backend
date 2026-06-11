@@ -44,7 +44,7 @@ val GrunnmurCsrf = createApplicationPlugin(name = "GrunnmurCsrf", createConfigur
             return@onCall
         }
 
-        if (!MessageDigest.isEqual(csrfCookie.toByteArray(), csrfHeader.toByteArray())) {
+        if (!MessageDigest.isEqual(csrfCookie.toByteArray(Charsets.UTF_8), csrfHeader.toByteArray(Charsets.UTF_8))) {
             call.application.log.warn("CSRF-validering feilet: Token mismatch. Path: $path")
             call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Ugyldig CSRF-token"))
             return@onCall
