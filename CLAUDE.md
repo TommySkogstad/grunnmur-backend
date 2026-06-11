@@ -82,6 +82,7 @@ post("/api/auth/send-otp") {
 - `authRateLimiterWithIdentifier()` — IP (5/min + 10/time) + identifikator (5/15min)
 - `apiRateLimiterAuthenticated()` — 60/min per IP
 - `apiRateLimiterAnonymous()` — 20/min per IP
+- `imageUploadRateLimiter()` — 12 bilder/time per IP (for GitHubIssueRoutes bildeopplastinger)
 
 Brukseksempel i apper:
 ```kotlin
@@ -89,6 +90,7 @@ Brukseksempel i apper:
 val authLimiter = authRateLimiter()
 val apiLimiterAuth = apiRateLimiterAuthenticated()
 val apiLimiterAnon = apiRateLimiterAnonymous()
+val imageLimiter = imageUploadRateLimiter()
 
 // Auth-ruter
 post("/api/auth/send-otp") {
@@ -105,6 +107,15 @@ get("/api/data") {
     val limiter = if (call.getUserId() != null) apiLimiterAuth else apiLimiterAnon
     call.checkRateLimit(limiter.isAllowed(ip))
 }
+
+// GitHub issue-ruter med separat bildeopplasting-kvote
+gitHubIssueRoutes(GitHubIssueRoutesConfig(
+    issueService = issueService,
+    imageService = imageService,
+    rateLimiter = apiRateLimiterAnonymous(),
+    webhookSecret = webhookSecret,
+    imageRateLimiter = imageLimiter
+))
 ```
 
 #### EncryptionUtils (`EncryptionUtils.kt`) — object
@@ -276,7 +287,7 @@ Hjelpefunksjoner:
 - `parseWebhookAction(payload: String): Pair<String, Int>?` — (action, issueNumber)
 
 Dataklasser:
-- `GitHubIssueRoutesConfig(issueService, imageService?, rateLimiter: KeyRateLimiter, webhookSecret)` — bruker `KeyRateLimiter` interface for fleksibilitet
+- `GitHubIssueRoutesConfig(issueService, imageService?, rateLimiter: KeyRateLimiter, webhookSecret, imageRateLimiter?, maxImagesPerRequest = 3)` — `rateLimiter` begrenser issue-opprettelse; `imageRateLimiter` (valgfri) begrenser bildeopplastinger separat per IP (f.eks. `imageUploadRateLimiter()` = 12/time). `maxImagesPerRequest` avviser requests med for mange bilder med 400.
 - `CreateIssueResponse(issueNumber, issueUrl, imageUrls?)`
 
 #### ImageUploadService (`ImageUploadService.kt`) — class
