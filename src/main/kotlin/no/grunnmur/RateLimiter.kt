@@ -33,13 +33,13 @@ interface KeyRateLimiter {
 class RateLimiter(
     private val maxAttempts: Int = 5,
     val windowMs: Long = 300_000,
-    private val maxEntries: Int = 10_000
+    private val maxEntries: Int = 10_000,
+    private val cleanupIntervalMs: Long = 60_000
 ) : KeyRateLimiter {
     private data class AttemptRecord(val count: Int, val windowStart: Long)
 
     private val attempts = ConcurrentHashMap<String, AttemptRecord>()
     private val lastCleanup = AtomicLong(System.currentTimeMillis())
-    private val cleanupIntervalMs = 60_000L
 
     /**
      * Sjekker om en noekkel er tillatt og registrerer forsoekets.
@@ -124,9 +124,10 @@ class RateLimiter(
         if (now - last < cleanupIntervalMs) return
         if (!lastCleanup.compareAndSet(last, now)) return
         attempts.entries.removeIf { now - it.value.windowStart > windowMs }
-        if (attempts.size > maxEntries) {
+        val currentSize = attempts.size
+        if (currentSize > maxEntries) {
             val sorted = attempts.entries.sortedBy { it.value.windowStart }
-            val toRemove = sorted.take(attempts.size - maxEntries)
+            val toRemove = sorted.take(currentSize - maxEntries)
             toRemove.forEach { attempts.remove(it.key) }
         }
     }

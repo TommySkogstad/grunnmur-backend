@@ -132,7 +132,7 @@ class RateLimiterTest {
 
     @Test
     fun `cleanup fra to traader samtidig gir ikke negativ size`() {
-        val limiter = RateLimiter(maxAttempts = 5, windowMs = 50, maxEntries = 10_000)
+        val limiter = RateLimiter(maxAttempts = 5, windowMs = 50, maxEntries = 10_000, cleanupIntervalMs = 50)
         val keyCount = 200
         repeat(keyCount) { i -> limiter.isAllowed("key-$i") }
         assertEquals(keyCount, limiter.size())
@@ -152,7 +152,7 @@ class RateLimiterTest {
         futures.forEach { it.get(10, TimeUnit.SECONDS) }
         executor.shutdown()
 
-        assertTrue(limiter.size() >= 0, "size() skal aldri vaere negativ etter concurrent cleanup")
+        assertTrue(limiter.size() < keyCount, "Utgaatte entries skal vaere fjernet etter cleanup")
     }
 
     @Test
