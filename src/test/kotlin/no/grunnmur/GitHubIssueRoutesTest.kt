@@ -12,6 +12,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import java.net.InetSocketAddress
+import java.nio.file.Files
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import javax.crypto.Mac
@@ -196,6 +198,165 @@ class GitHubIssueRoutesTest {
                 }
             } finally {
                 server.stop(0)
+            }
+        }
+    }
+
+    @Nested
+    inner class ImageRateLimit {
+
+        private fun pngBytes(size: Int = 100): ByteArray {
+            val header = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+            return header + ByteArray(size - header.size)
+        }
+
+        private fun imagePart(index: Int, bytes: ByteArray) = FormPart(
+            "images", bytes, Headers.build {
+                append(HttpHeaders.ContentDisposition, "form-data; name=\"images\"; filename=\"img$index.png\"")
+                append(HttpHeaders.ContentType, "image/png")
+            }
+        )
+
+        private fun createGitHubServer(issueNumber: Int = 42): HttpServer {
+            val server = HttpServer.create(InetSocketAddress(0), 0)
+            server.createContext("/repos/fake/fake/issues") { exchange ->
+                exchange.requestBody.use { it.readBytes() }
+                val body = """{"number":$issueNumber,"html_url":"https://github.com/fake/fake/issues/$issueNumber"}""".toByteArray()
+                exchange.responseHeaders.add("Content-Type", "application/json")
+                val status = if (exchange.requestMethod == "POST") 201 else 200
+                exchange.sendResponseHeaders(status, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+            }
+            server.start()
+            return server
+        }
+
+        @Test
+        fun `for mange bilder gir 400`() = testApplication {
+            val fakeService = GitHubIssueService(
+                GitHubIssueService.Config(token = "fake-token", repo = "fake/fake")
+            )
+            application {
+                install(ContentNegotiation) { json() }
+                install(StatusPages) { grunnmurExceptionHandlers() }
+                routing {
+                    gitHubIssueRoutes(GitHubIssueRoutesConfig(
+                        issueService = fakeService,
+                        imageService = null,
+                        rateLimiter = RateLimiter(maxAttempts = 100, windowMs = 60_000),
+                        webhookSecret = "test-secret",
+                        maxImagesPerRequest = 2
+                    ))
+                }
+            }
+            val response = client.post("/api/issues") {
+                setBody(MultiPartFormDataContent(formData {
+                    append("title", "Test")
+                    append("senderName", "Test Bruker")
+                    append("senderEmail", "test@example.com")
+                    append("description", "Beskrivelse")
+                    repeat(3) { append(imagePart(it, pngBytes())) }
+                }))
+            }
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+        }
+
+        @Test
+        fun `imageRateLimiter stopper bildeopplasting naar kvoten er oppbrukt`() {
+            val uploadDir = Files.createTempDirectory("grunnmur-test-uploads")
+            val server = createGitHubServer(issueNumber = 42)
+            try {
+                testApplication {
+                    val fakeService = GitHubIssueService(
+                        GitHubIssueService.Config(token = "fake-token", repo = "fake/fake"),
+                        "http://localhost:${server.address.port}"
+                    )
+                    val imageService = ImageUploadService(
+                        ImageUploadService.Config(
+                            uploadDir = uploadDir.toString(),
+                            baseUrl = "https://example.com/uploads",
+                            repo = "fake/fake"
+                        )
+                    )
+                    application {
+                        install(ContentNegotiation) { json() }
+                        install(StatusPages) { grunnmurExceptionHandlers() }
+                        routing {
+                            gitHubIssueRoutes(GitHubIssueRoutesConfig(
+                                issueService = fakeService,
+                                imageService = imageService,
+                                rateLimiter = RateLimiter(maxAttempts = 100, windowMs = 60_000),
+                                webhookSecret = "test-secret",
+                                imageRateLimiter = RateLimiter(maxAttempts = 1, windowMs = 60_000)
+                            ))
+                        }
+                    }
+                    val response = client.post("/api/issues") {
+                        setBody(MultiPartFormDataContent(formData {
+                            append("title", "Test")
+                            append("senderName", "Test Bruker")
+                            append("senderEmail", "test@example.com")
+                            append("description", "Beskrivelse")
+                            repeat(2) { append(imagePart(it, pngBytes())) }
+                        }))
+                    }
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val parsed = Json { ignoreUnknownKeys = true }
+                        .decodeFromString<CreateIssueResponse>(response.bodyAsText())
+                    assertEquals(1, parsed.imageUrls.size, "imageRateLimiter (1/min) skal stoppe etter 1 bilde")
+                }
+            } finally {
+                server.stop(0)
+                uploadDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `uten imageRateLimiter lastes alle bilder opp`() {
+            val uploadDir = Files.createTempDirectory("grunnmur-test-uploads")
+            val server = createGitHubServer(issueNumber = 99)
+            try {
+                testApplication {
+                    val fakeService = GitHubIssueService(
+                        GitHubIssueService.Config(token = "fake-token", repo = "fake/fake"),
+                        "http://localhost:${server.address.port}"
+                    )
+                    val imageService = ImageUploadService(
+                        ImageUploadService.Config(
+                            uploadDir = uploadDir.toString(),
+                            baseUrl = "https://example.com/uploads",
+                            repo = "fake/fake"
+                        )
+                    )
+                    application {
+                        install(ContentNegotiation) { json() }
+                        install(StatusPages) { grunnmurExceptionHandlers() }
+                        routing {
+                            gitHubIssueRoutes(GitHubIssueRoutesConfig(
+                                issueService = fakeService,
+                                imageService = imageService,
+                                rateLimiter = RateLimiter(maxAttempts = 100, windowMs = 60_000),
+                                webhookSecret = "test-secret"
+                            ))
+                        }
+                    }
+                    val response = client.post("/api/issues") {
+                        setBody(MultiPartFormDataContent(formData {
+                            append("title", "Test")
+                            append("senderName", "Test Bruker")
+                            append("senderEmail", "test@example.com")
+                            append("description", "Beskrivelse")
+                            repeat(2) { append(imagePart(it, pngBytes())) }
+                        }))
+                    }
+                    assertEquals(HttpStatusCode.Created, response.status)
+                    val parsed = Json { ignoreUnknownKeys = true }
+                        .decodeFromString<CreateIssueResponse>(response.bodyAsText())
+                    assertEquals(2, parsed.imageUrls.size, "Alle 2 bilder skal lastes opp uten imageRateLimiter")
+                }
+            } finally {
+                server.stop(0)
+                uploadDir.toFile().deleteRecursively()
             }
         }
     }
