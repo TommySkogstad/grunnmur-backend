@@ -1,6 +1,7 @@
 package no.grunnmur
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Felles interface for enkle nøkkel-baserte rate limitere.
@@ -37,7 +38,7 @@ class RateLimiter(
     private data class AttemptRecord(val count: Int, val windowStart: Long)
 
     private val attempts = ConcurrentHashMap<String, AttemptRecord>()
-    @Volatile private var lastCleanup = System.currentTimeMillis()
+    private val lastCleanup = AtomicLong(System.currentTimeMillis())
     private val cleanupIntervalMs = 60_000L
 
     /**
@@ -119,16 +120,14 @@ class RateLimiter(
     fun size(): Int = attempts.size
 
     private fun cleanup(now: Long) {
-        if (now - lastCleanup < cleanupIntervalMs) return
-        synchronized(this) {
-            if (now - lastCleanup < cleanupIntervalMs) return
-            attempts.entries.removeIf { now - it.value.windowStart > windowMs }
-            if (attempts.size > maxEntries) {
-                val sorted = attempts.entries.sortedBy { it.value.windowStart }
-                val toRemove = sorted.take(attempts.size - maxEntries)
-                toRemove.forEach { attempts.remove(it.key) }
-            }
-            lastCleanup = now
+        val last = lastCleanup.get()
+        if (now - last < cleanupIntervalMs) return
+        if (!lastCleanup.compareAndSet(last, now)) return
+        attempts.entries.removeIf { now - it.value.windowStart > windowMs }
+        if (attempts.size > maxEntries) {
+            val sorted = attempts.entries.sortedBy { it.value.windowStart }
+            val toRemove = sorted.take(attempts.size - maxEntries)
+            toRemove.forEach { attempts.remove(it.key) }
         }
     }
 }
