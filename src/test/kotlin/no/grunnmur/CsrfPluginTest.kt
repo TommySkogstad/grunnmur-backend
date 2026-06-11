@@ -153,6 +153,32 @@ class CsrfPluginTest {
     }
 
     @Nested
+    inner class TokenFormat {
+
+        @Test
+        fun `CSRF-token med ikke-ASCII tegn godtas naar cookie og header matcher`() = testApplication {
+            setupApp()
+            val token = "token-øæå-123"
+            val response = client.post("/api/test") {
+                header("Cookie", "auth_token=jwt-token; csrf_token=$token")
+                header("X-CSRF-Token", token)
+            }
+            assertEquals(HttpStatusCode.OK, response.status)
+        }
+
+        @Test
+        fun `CSRF-token med ikke-ASCII tegn avvises ved mismatch`() = testApplication {
+            setupApp()
+            val response = client.post("/api/test") {
+                header("Cookie", "auth_token=jwt-token; csrf_token=token-øæå-a")
+                header("X-CSRF-Token", "token-øæå-b")
+            }
+            assertEquals(HttpStatusCode.Forbidden, response.status)
+            assertContains(response.bodyAsText(), "Ugyldig CSRF-token")
+        }
+    }
+
+    @Nested
     inner class Konfigurasjon {
 
         @Test
