@@ -42,8 +42,8 @@ class AuditLogService {
         details: String? = null,
         ipAddress: String? = null
     ) {
-        try {
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            try {
                 transaction {
                     AuditLogs.insert {
                         it[AuditLogs.userId] = userId
@@ -56,9 +56,9 @@ class AuditLogService {
                         it[AuditLogs.createdAt] = TimeUtils.nowOslo()
                     }
                 }
+            } catch (e: Exception) {
+                log.error("Kunne ikke logge handling: ${e.message}", e)
             }
-        } catch (e: Exception) {
-            log.error("Kunne ikke logge handling: ${e.message}", e)
         }
     }
 
