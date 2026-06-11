@@ -227,7 +227,7 @@ FlywayMigration.migrate(dataSource) // Kjoerer alle ventende migrasjoner
 | `migrate` | `(dataSource, locations): Int` | Kjoerer migrasjoner, returnerer antall |
 
 #### AuditLog (`AuditLogTable.kt` + `AuditLogService.kt`)
-Database-basert revisjonslogging med Exposed DSL. Tabellen `audit_logs` med indekser paa entity, created_at og user. Testdekning via PostgreSQL 16-integrasjonstester (Testcontainers).
+Database-basert revisjonslogging med Exposed DSL. Tabellen `audit_logs` med indekser paa entity, created_at og user. Alle metoder er suspenderende og bruker `Dispatchers.IO` for databaseoperasjoner. Testdekning via PostgreSQL 16-integrasjonstester (Testcontainers).
 
 ```kotlin
 val auditLog = AuditLogService()
@@ -239,10 +239,10 @@ auditLog.cleanupOldLogs(retentionDays = 365)
 **AuditLogService** (class):
 | Funksjon | Signatur | Beskrivelse |
 |----------|----------|-------------|
-| `log` | `(userId, userEmail, action, entityType, entityId?, details?, ipAddress?)` | Logger handling |
-| `findAll` | `(action?, entityType?, userId?, startDate?, endDate?, limit, offset): List<AuditLogEntry>` | Henter med filtrering |
-| `count` | `(action?, entityType?, userId?, startDate?, endDate?): Long` | Teller med filtrering |
-| `cleanupOldLogs` | `(retentionDays: Int = 365): Int` | Sletter gamle logger |
+| `log` | `suspend (userId, userEmail, action, entityType, entityId?, details?, ipAddress?)` | Logger handling |
+| `findAll` | `suspend (action?, entityType?, userId?, startDate?, endDate?, limit, offset): List<AuditLogEntry>` | Henter med filtrering |
+| `count` | `suspend (action?, entityType?, userId?, startDate?, endDate?): Long` | Teller med filtrering |
+| `cleanupOldLogs` | `suspend (retentionDays: Int = 365): Int` | Sletter gamle logger |
 
 **AuditLogs** (object: Table) — Exposed-tabelldefinisjonen.
 
