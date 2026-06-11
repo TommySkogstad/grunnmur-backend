@@ -1,5 +1,6 @@
 package no.grunnmur
 
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -62,7 +63,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `findAll startDate filtrerer korrekt mot ekte PostgreSQL`() {
+    fun `findAll startDate filtrerer korrekt mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(10))
         insertWithCreatedAt("NY", now)
@@ -75,7 +76,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `findAll endDate filtrerer korrekt mot ekte PostgreSQL`() {
+    fun `findAll endDate filtrerer korrekt mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(10))
         insertWithCreatedAt("NY", now)
@@ -88,7 +89,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `findAll datoperiode filtrerer korrekt mot ekte PostgreSQL`() {
+    fun `findAll datoperiode filtrerer korrekt mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(7))
         insertWithCreatedAt("MIDT", now.minusDays(3))
@@ -103,7 +104,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `startDate inkluderer post klokken 00 30 Oslo-tid paa filtrert dato mot ekte PostgreSQL`() {
+    fun `startDate inkluderer post klokken 00 30 Oslo-tid paa filtrert dato mot ekte PostgreSQL`() = runBlocking {
         val osloDate = LocalDate.of(2026, 5, 7)
         val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
         insertWithCreatedAt("TIDLIG_MORGEN", startOfDayOslo.plusMinutes(30))
@@ -116,7 +117,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `endDate inkluderer post klokken 23 30 Oslo-tid paa filtrert dato mot ekte PostgreSQL`() {
+    fun `endDate inkluderer post klokken 23 30 Oslo-tid paa filtrert dato mot ekte PostgreSQL`() = runBlocking {
         val osloDate = LocalDate.of(2026, 5, 7)
         val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
         insertWithCreatedAt("SEN_KVELD", startOfDayOslo.plusHours(23).plusMinutes(30))
@@ -129,7 +130,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `cleanupOldLogs sletter rader eldre enn retentionDays mot ekte PostgreSQL`() {
+    fun `cleanupOldLogs sletter rader eldre enn retentionDays mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(400))
         insertWithCreatedAt("NY", now)
@@ -143,7 +144,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `cleanupOldLogs bevarer rader innenfor retentionDays mot ekte PostgreSQL`() {
+    fun `cleanupOldLogs bevarer rader innenfor retentionDays mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("FOR_GAMMEL", now.minusDays(100))
         insertWithCreatedAt("NY_NOK", now.minusDays(30))
@@ -157,7 +158,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `cleanupOldLogs returnerer 0 naar ingen rader er eldre enn retention mot ekte PostgreSQL`() {
+    fun `cleanupOldLogs returnerer 0 naar ingen rader er eldre enn retention mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("NY", now)
 
@@ -168,7 +169,7 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
-    fun `count og findAll gir konsistent resultat med datofilter mot ekte PostgreSQL`() {
+    fun `count og findAll gir konsistent resultat med datofilter mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(10))
         insertWithCreatedAt("NY1", now)

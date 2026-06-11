@@ -1,5 +1,6 @@
 package no.grunnmur
 
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -55,7 +56,7 @@ class AuditLogServiceTest {
     @Nested
     inner class Log {
         @Test
-        fun `log skriver entry med korrekte felter`() {
+        fun `log skriver entry med korrekte felter`() = runBlocking {
             service.log(
                 userId = 1,
                 userEmail = "admin@test.no",
@@ -79,7 +80,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `log med null userId bruker system som standard`() {
+        fun `log med null userId bruker system som standard`() = runBlocking {
             service.log(userId = null, action = "SYSTEM_JOB", entityType = "CRON")
 
             val entries = service.findAll()
@@ -89,7 +90,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `log med valgfrie felter som null lagres korrekt`() {
+        fun `log med valgfrie felter som null lagres korrekt`() = runBlocking {
             service.log(userId = 5, action = "READ", entityType = "POST")
 
             val entries = service.findAll()
@@ -100,7 +101,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `log bevarer entityId stoerre enn Int MAX VALUE`() {
+        fun `log bevarer entityId stoerre enn Int MAX VALUE`() = runBlocking {
             val bigId = Int.MAX_VALUE + 1L
             service.log(
                 userId = 1,
@@ -115,12 +116,12 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `log kaster ikke exception ved databasefeil`() {
+        fun `log kaster ikke exception ved databasefeil`() = runBlocking {
             transaction(database) {
                 SchemaUtils.drop(AuditLogs)
             }
             assertDoesNotThrow {
-                service.log(userId = 1, action = "CREATE", entityType = "USER")
+                runBlocking { service.log(userId = 1, action = "CREATE", entityType = "USER") }
             }
         }
     }
@@ -128,12 +129,12 @@ class AuditLogServiceTest {
     @Nested
     inner class FindAll {
         @Test
-        fun `findAll returnerer tom liste naar databasen er tom`() {
+        fun `findAll returnerer tom liste naar databasen er tom`() = runBlocking {
             assertTrue(service.findAll().isEmpty())
         }
 
         @Test
-        fun `findAll returnerer entries sortert nyeste forst`() {
+        fun `findAll returnerer entries sortert nyeste forst`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "A1", "T", now.minusMinutes(2))
             insertWithCreatedAt(2, "A2", "T", now.minusMinutes(1))
@@ -147,7 +148,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll respekterer limit`() {
+        fun `findAll respekterer limit`() = runBlocking {
             repeat(20) { i ->
                 service.log(userId = i, action = "A", entityType = "T")
             }
@@ -156,7 +157,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll begrenser til MAX_LIMIT naar limit er Int MAX VALUE`() {
+        fun `findAll begrenser til MAX_LIMIT naar limit er Int MAX VALUE`() = runBlocking {
             repeat(10) { i ->
                 service.log(userId = i, action = "A", entityType = "T")
             }
@@ -166,7 +167,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll respekterer offset`() {
+        fun `findAll respekterer offset`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "FIRST", "T", now.minusMinutes(2))
             insertWithCreatedAt(2, "SECOND", "T", now.minusMinutes(1))
@@ -182,7 +183,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa action`() {
+        fun `findAll filtrerer paa action`() = runBlocking {
             service.log(userId = 1, action = "CREATE", entityType = "T")
             service.log(userId = 2, action = "UPDATE", entityType = "T")
             service.log(userId = 3, action = "DELETE", entityType = "T")
@@ -193,7 +194,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa entityType`() {
+        fun `findAll filtrerer paa entityType`() = runBlocking {
             service.log(userId = 1, action = "A", entityType = "USER")
             service.log(userId = 2, action = "A", entityType = "POST")
 
@@ -203,7 +204,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa userId`() {
+        fun `findAll filtrerer paa userId`() = runBlocking {
             service.log(userId = 10, action = "A", entityType = "T")
             service.log(userId = 20, action = "A", entityType = "T")
 
@@ -213,7 +214,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa startDate`() {
+        fun `findAll filtrerer paa startDate`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "OLD", "T", now.minusDays(10))
             insertWithCreatedAt(2, "NEW", "T", now)
@@ -226,7 +227,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa endDate`() {
+        fun `findAll filtrerer paa endDate`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "OLD", "T", now.minusDays(10))
             insertWithCreatedAt(2, "NEW", "T", now)
@@ -239,7 +240,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll filtrerer paa datoperiode`() {
+        fun `findAll filtrerer paa datoperiode`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "WEEK_AGO", "T", now.minusDays(7))
             insertWithCreatedAt(2, "YESTERDAY", "T", now.minusDays(1))
@@ -255,7 +256,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `startDate inkluderer post klokken 00 30 Oslo-tid paa filtrert dato`() {
+        fun `startDate inkluderer post klokken 00 30 Oslo-tid paa filtrert dato`() = runBlocking {
             val osloDate = java.time.LocalDate.of(2026, 5, 7)
             val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
             insertWithCreatedAt(1, "TIDLIG_MORGEN", "T", startOfDayOslo.plusMinutes(30))
@@ -268,7 +269,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `endDate inkluderer post klokken 23 30 Oslo-tid paa filtrert dato`() {
+        fun `endDate inkluderer post klokken 23 30 Oslo-tid paa filtrert dato`() = runBlocking {
             val osloDate = java.time.LocalDate.of(2026, 5, 7)
             val startOfDayOslo = osloDate.atStartOfDay(TimeUtils.OSLO_ZONE).toLocalDateTime()
             insertWithCreatedAt(1, "SEN_KVELD", "T", startOfDayOslo.plusHours(23).plusMinutes(30))
@@ -281,7 +282,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll ignorerer ugyldig datoformat og returnerer alle`() {
+        fun `findAll ignorerer ugyldig datoformat og returnerer alle`() = runBlocking {
             service.log(userId = 1, action = "A", entityType = "T")
             service.log(userId = 2, action = "B", entityType = "T")
 
@@ -290,7 +291,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `findAll kombinerer flere filtre`() {
+        fun `findAll kombinerer flere filtre`() = runBlocking {
             service.log(userId = 1, action = "CREATE", entityType = "USER")
             service.log(userId = 1, action = "UPDATE", entityType = "USER")
             service.log(userId = 2, action = "CREATE", entityType = "USER")
@@ -307,18 +308,18 @@ class AuditLogServiceTest {
     @Nested
     inner class Count {
         @Test
-        fun `count returnerer 0 for tom database`() {
+        fun `count returnerer 0 for tom database`() = runBlocking {
             assertEquals(0L, service.count())
         }
 
         @Test
-        fun `count returnerer totalt antall entries`() {
+        fun `count returnerer totalt antall entries`() = runBlocking {
             repeat(7) { service.log(userId = it, action = "A", entityType = "T") }
             assertEquals(7L, service.count())
         }
 
         @Test
-        fun `count respekterer action-filter`() {
+        fun `count respekterer action-filter`() = runBlocking {
             service.log(userId = 1, action = "CREATE", entityType = "T")
             service.log(userId = 2, action = "UPDATE", entityType = "T")
             service.log(userId = 3, action = "CREATE", entityType = "T")
@@ -328,7 +329,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `count og findAll returnerer konsistent resultat`() {
+        fun `count og findAll returnerer konsistent resultat`() = runBlocking {
             repeat(5) { i ->
                 service.log(userId = if (i % 2 == 0) 1 else 2, action = "A", entityType = "T")
             }
@@ -342,7 +343,7 @@ class AuditLogServiceTest {
     @Nested
     inner class CleanupOldLogs {
         @Test
-        fun `cleanupOldLogs returnerer 0 naar ingen er eldre enn retention`() {
+        fun `cleanupOldLogs returnerer 0 naar ingen er eldre enn retention`() = runBlocking {
             service.log(userId = 1, action = "A", entityType = "T")
 
             val deleted = service.cleanupOldLogs(retentionDays = 365)
@@ -351,7 +352,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `cleanupOldLogs sletter entries eldre enn retentionDays`() {
+        fun `cleanupOldLogs sletter entries eldre enn retentionDays`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "GAMMEL", "T", now.minusDays(400))
             insertWithCreatedAt(2, "NY", "T", now)
@@ -365,7 +366,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `cleanupOldLogs med tilpasset retentionDays`() {
+        fun `cleanupOldLogs med tilpasset retentionDays`() = runBlocking {
             val now = TimeUtils.nowOslo()
             insertWithCreatedAt(1, "FOR_GAMMEL", "T", now.minusDays(100))
             insertWithCreatedAt(2, "NY_NOK", "T", now.minusDays(30))
@@ -378,7 +379,7 @@ class AuditLogServiceTest {
         }
 
         @Test
-        fun `cleanupOldLogs returnerer 0 naar databasen er tom`() {
+        fun `cleanupOldLogs returnerer 0 naar databasen er tom`() = runBlocking {
             assertEquals(0, service.cleanupOldLogs())
         }
     }

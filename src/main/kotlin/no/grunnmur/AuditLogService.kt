@@ -1,5 +1,7 @@
 package no.grunnmur
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -31,7 +33,7 @@ class AuditLogService {
      * Logger en handling til revisjonsloggen.
      * Feil i logging stopper ikke hovedoperasjonen.
      */
-    fun log(
+    suspend fun log(
         userId: Int?,
         userEmail: String = "system",
         action: String,
@@ -41,16 +43,18 @@ class AuditLogService {
         ipAddress: String? = null
     ) {
         try {
-            transaction {
-                AuditLogs.insert {
-                    it[AuditLogs.userId] = userId
-                    it[AuditLogs.userEmail] = userEmail
-                    it[AuditLogs.action] = action
-                    it[AuditLogs.entityType] = entityType
-                    it[AuditLogs.entityId] = entityId
-                    it[AuditLogs.details] = details
-                    it[AuditLogs.ipAddress] = ipAddress
-                    it[AuditLogs.createdAt] = TimeUtils.nowOslo()
+            withContext(Dispatchers.IO) {
+                transaction {
+                    AuditLogs.insert {
+                        it[AuditLogs.userId] = userId
+                        it[AuditLogs.userEmail] = userEmail
+                        it[AuditLogs.action] = action
+                        it[AuditLogs.entityType] = entityType
+                        it[AuditLogs.entityId] = entityId
+                        it[AuditLogs.details] = details
+                        it[AuditLogs.ipAddress] = ipAddress
+                        it[AuditLogs.createdAt] = TimeUtils.nowOslo()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -61,7 +65,7 @@ class AuditLogService {
     /**
      * Henter revisjonslogger med filtrering og paginering.
      */
-    fun findAll(
+    suspend fun findAll(
         action: String? = null,
         entityType: String? = null,
         userId: Int? = null,
@@ -71,30 +75,34 @@ class AuditLogService {
         offset: Long = 0
     ): List<AuditLogEntry> {
         val effectiveLimit = limit.coerceIn(1, MAX_LIMIT)
-        return transaction {
-            val query = AuditLogs.selectAll()
-            applyFilters(query, action, entityType, userId, startDate, endDate)
-            query
-                .orderBy(AuditLogs.createdAt, SortOrder.DESC)
-                .limit(effectiveLimit).offset(offset)
-                .map { it.toAuditLogEntry() }
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val query = AuditLogs.selectAll()
+                applyFilters(query, action, entityType, userId, startDate, endDate)
+                query
+                    .orderBy(AuditLogs.createdAt, SortOrder.DESC)
+                    .limit(effectiveLimit).offset(offset)
+                    .map { it.toAuditLogEntry() }
+            }
         }
     }
 
     /**
      * Teller revisjonslogger med filtrering.
      */
-    fun count(
+    suspend fun count(
         action: String? = null,
         entityType: String? = null,
         userId: Int? = null,
         startDate: String? = null,
         endDate: String? = null
     ): Long {
-        return transaction {
-            val query = AuditLogs.selectAll()
-            applyFilters(query, action, entityType, userId, startDate, endDate)
-            query.count()
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val query = AuditLogs.selectAll()
+                applyFilters(query, action, entityType, userId, startDate, endDate)
+                query.count()
+            }
         }
     }
 
@@ -102,14 +110,16 @@ class AuditLogService {
      * Sletter gamle logger basert paa retention-policy.
      * @return Antall slettede rader
      */
-    fun cleanupOldLogs(retentionDays: Int = 365): Int {
+    suspend fun cleanupOldLogs(retentionDays: Int = 365): Int {
         val cutoff = TimeUtils.nowOslo().minusDays(retentionDays.toLong())
-        return transaction {
-            val deleted = AuditLogs.deleteWhere { createdAt less cutoff }
-            if (deleted > 0) {
-                log.info("Slettet $deleted audit logs eldre enn $retentionDays dager")
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val deleted = AuditLogs.deleteWhere { createdAt less cutoff }
+                if (deleted > 0) {
+                    log.info("Slettet $deleted audit logs eldre enn $retentionDays dager")
+                }
+                deleted
             }
-            deleted
         }
     }
 
