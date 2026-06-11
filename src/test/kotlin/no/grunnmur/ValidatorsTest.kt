@@ -224,6 +224,26 @@ class ValidatorsTest {
             assertFalse(Validators.validatePassword("Vinter2025").isValid)
             assertFalse(Validators.validatePassword("sommer2024").isValid)
         }
+
+        @Test
+        fun `idrettsbegreper avvises`() {
+            assertFalse(Validators.validatePassword("Handball123").isValid)
+            assertFalse(Validators.validatePassword("Basketball1").isValid)
+            assertFalse(Validators.validatePassword("Volleyball12").isValid)
+        }
+
+        @Test
+        fun `keyboard walks avvises`() {
+            assertFalse(Validators.validatePassword("Qwerty12").isValid)
+            assertFalse(Validators.validatePassword("Asdfgh12").isValid)
+            assertFalse(Validators.validatePassword("Zxcvbn12").isValid)
+        }
+
+        @Test
+        fun `siffer-repetisjon avvises`() {
+            assertFalse(Validators.validatePassword("11111111a").isValid)
+            assertFalse(Validators.validatePassword("22222222b").isValid)
+        }
     }
 
     @Nested

@@ -172,9 +172,11 @@ object Validators {
 
     // Fallback-liste hvis ressursfilen mangler fra classpath
     private val COMMON_PASSWORDS_FALLBACK = setOf(
-        "password", "passord", "12345678", "qwerty123",
+        "password", "passord", "12345678", "qwerty",
         "hemmelig", "fotball", "iloveyou", "sunshine",
-        "welcome", "letmein", "master12", "dragon12"
+        "welcome", "letmein", "master12", "dragon12",
+        "handball", "basketball", "volleyball", "asdfgh",
+        "zxcvbn", "123456789", "qweasd", "admin123"
     )
 
     private val commonPasswordSet: Set<String> by lazy {
