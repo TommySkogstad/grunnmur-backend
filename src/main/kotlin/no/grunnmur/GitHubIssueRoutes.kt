@@ -15,12 +15,18 @@ import javax.crypto.spec.SecretKeySpec
 
 /**
  * Konfigurasjon for issue-ruter.
+ *
+ * [imageRateLimiter] begrenser totalt antall bilder lastet opp per IP på tvers av
+ * forespørsler (f.eks. `imageUploadRateLimiter()` = 12/time). Null = ingen separat kvote.
+ * [maxImagesPerRequest] avviser forespørsler med for mange bilder med 400.
  */
 data class GitHubIssueRoutesConfig(
     val issueService: GitHubIssueService,
     val imageService: ImageUploadService?,
     val rateLimiter: KeyRateLimiter,
-    val webhookSecret: String
+    val webhookSecret: String,
+    val imageRateLimiter: KeyRateLimiter? = null,
+    val maxImagesPerRequest: Int = 3
 )
 
 @Serializable
@@ -90,6 +96,7 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
         var consoleLogs: String? = null
         var labels = emptyList<String>()
         val imageData = mutableListOf<Pair<ByteArray, String>>()
+        var imageCountSeen = 0
 
         multipart.forEachPart { part ->
             when (part) {
@@ -105,14 +112,21 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
                 }
                 is PartData.FileItem -> {
                     if (part.name == "images") {
-                        val bytes = part.provider().toByteArray()
-                        val filename = part.originalFileName ?: "image"
-                        imageData.add(bytes to filename)
+                        imageCountSeen++
+                        if (imageCountSeen <= config.maxImagesPerRequest) {
+                            val bytes = part.provider().toByteArray()
+                            val filename = part.originalFileName ?: "image"
+                            imageData.add(bytes to filename)
+                        }
                     }
                 }
                 else -> {}
             }
             part.dispose()
+        }
+
+        if (imageCountSeen > config.maxImagesPerRequest) {
+            throw BadRequestException("For mange bilder (maks ${config.maxImagesPerRequest} per forespoersel)")
         }
 
         if (title.isBlank()) throw BadRequestException("Tittel er paakrevd")
@@ -135,6 +149,10 @@ fun Route.gitHubIssueRoutes(config: GitHubIssueRoutesConfig) {
         val imageUrls = mutableListOf<String>()
         if (config.imageService != null && imageData.isNotEmpty()) {
             for ((bytes, filename) in imageData) {
+                if (config.imageRateLimiter != null && !config.imageRateLimiter.isAllowed(clientIp)) {
+                    call.application.log.warn("Bildekvote oppbrukt for IP $clientIp ved issue #${issueResponse.number}")
+                    break
+                }
                 val result = config.imageService.uploadImage(issueResponse.number, bytes, filename)
                 result.onSuccess { url -> imageUrls.add(url) }
                 result.onFailure { e ->

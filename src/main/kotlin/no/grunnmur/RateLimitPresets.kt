@@ -135,6 +135,24 @@ fun apiRateLimiterAnonymous(
 ): RateLimiter = RateLimiter(maxAttempts = maxRequests, windowMs = windowMs)
 
 /**
+ * Ferdigkonfigurert rate limiter for bildeopplasting per IP.
+ * Teller bilder (ikke forespørsler). Standard: 12 bilder/time per IP —
+ * tilsvarer 4 fulle issue-opplastinger à 3 bilder.
+ *
+ * Bruk i GitHubIssueRoutesConfig:
+ * ```
+ * GitHubIssueRoutesConfig(
+ *     ...,
+ *     imageRateLimiter = imageUploadRateLimiter()
+ * )
+ * ```
+ */
+fun imageUploadRateLimiter(
+    maxImages: Int = 12,
+    windowMs: Long = 3_600_000
+): RateLimiter = RateLimiter(maxAttempts = maxImages, windowMs = windowMs)
+
+/**
  * Rate limiter som kombinerer IP-basert og identifikator-basert limiting.
  * Begge sjekkes alltid — den strengeste vinner (begge maa tillate).
  * Identifikatorer (telefonnummer/e-post) hashes med SHA-256 saa de ikke lagres i klartekst.

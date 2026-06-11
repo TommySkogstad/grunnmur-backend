@@ -373,6 +373,22 @@ class RateLimitPresetsTest {
         assertFalse(limiter.isAllowed("ip1", "phone99"), "6. forsoek fra samme IP skal blokkeres")
     }
 
+    // --- imageUploadRateLimiter preset ---
+
+    @Test
+    fun `imageUploadRateLimiter tillater standard 12 bilder per time`() {
+        val limiter = imageUploadRateLimiter()
+        repeat(12) { assertTrue(limiter.isAllowed("ip1"), "Bilde ${it + 1} skal vaere tillatt") }
+        assertFalse(limiter.isAllowed("ip1"), "13. bilde skal blokkeres")
+    }
+
+    @Test
+    fun `imageUploadRateLimiter respekterer konfigurerbare grenser`() {
+        val limiter = imageUploadRateLimiter(maxImages = 3, windowMs = 60_000)
+        repeat(3) { assertTrue(limiter.isAllowed("ip1")) }
+        assertFalse(limiter.isAllowed("ip1"), "4. bilde skal blokkeres")
+    }
+
 }
 
 /**
