@@ -120,9 +120,7 @@ class AuditLogServiceTest {
             transaction(database) {
                 SchemaUtils.drop(AuditLogs)
             }
-            assertDoesNotThrow {
-                runBlocking { service.log(userId = 1, action = "CREATE", entityType = "USER") }
-            }
+            service.log(userId = 1, action = "CREATE", entityType = "USER")
         }
     }
 
