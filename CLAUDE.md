@@ -29,7 +29,7 @@ Felles interface for enkle nøkkel-baserte rate limitere. Implementeres av `Rate
 - `retryAfterSeconds(key: String): Long?`
 
 #### RateLimiter (`RateLimiter.kt`) — class : KeyRateLimiter
-In-memory sliding window rate limiter. Atomisk sjekk+oppdatering via `compute()` (garantert ikke overstige maxAttempts under parallell load). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
+In-memory sliding window rate limiter. Atomisk sjekk+oppdatering via `compute()` og cleanup via `AtomicLong.compareAndSet()` (garantert ikke overstige maxAttempts under parallell load uten synchronized-blokk). Automatisk cleanup hvert 60s. `maxEntries` beskytter mot minnelekkasje.
 
 ```kotlin
 val limiter = RateLimiter(maxAttempts = 5, windowMs = 300_000, maxEntries = 10_000)
