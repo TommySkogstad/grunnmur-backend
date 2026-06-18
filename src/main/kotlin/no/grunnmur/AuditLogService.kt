@@ -175,7 +175,7 @@ class AuditLogService {
  * DTO for en audit-logg-entry.
  */
 data class AuditLogEntry(
-    val id: Int,
+    val id: Long,
     val userId: Int?,
     val userEmail: String,
     val action: String,

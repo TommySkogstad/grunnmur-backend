@@ -10,7 +10,7 @@ import org.jetbrains.exposed.v1.javatime.datetime
  * Migrering (SQL):
  * ```sql
  * CREATE TABLE IF NOT EXISTS audit_logs (
- *     id SERIAL PRIMARY KEY,
+ *     id BIGSERIAL PRIMARY KEY,
  *     user_id INTEGER,
  *     user_email VARCHAR(255) NOT NULL DEFAULT 'system',
  *     action VARCHAR(100) NOT NULL,
@@ -26,7 +26,7 @@ import org.jetbrains.exposed.v1.javatime.datetime
  * ```
  */
 object AuditLogs : Table("audit_logs") {
-    val id = integer("id").autoIncrement()
+    val id = long("id").autoIncrement()
     val userId = integer("user_id").nullable()
     val userEmail = varchar("user_email", 255).default("system")
     val action = varchar("action", 100)
