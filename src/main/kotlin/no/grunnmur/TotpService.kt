@@ -3,6 +3,7 @@ package no.grunnmur
 import dev.turingcomplete.kotlinonetimepassword.HmacAlgorithm
 import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordConfig
 import dev.turingcomplete.kotlinonetimepassword.TimeBasedOneTimePasswordGenerator
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
 import java.util.Base64
@@ -56,28 +57,50 @@ object TotpService {
      */
     fun confirmTotp(encryptedSecret: String, encryptionKey: String, code: String): Boolean {
         val secretBytes = decryptSecret(encryptedSecret, encryptionKey) ?: return false
-        return verifyCode(secretBytes, code)
+        return verifyCode(secretBytes, code) != null
     }
 
     /**
      * Verifiserer en TOTP-kode ved innlogging.
      *
+     * **Replay-beskyttelse**: TOTP-koden er gyldig i ±[WINDOW_SIZE] tidssteg (±60 sekunder, totalt 120s).
+     * For å hindre gjenbruk av en avlyttet kode innenfor dette vinduet, send inn et trådsikkert sett
+     * via [usedCodes] (`ConcurrentHashMap.newKeySet()`). Grunnmur avviser koden hvis den allerede er
+     * brukt og registrerer vellykket bruk atomisk. Nøkkelen som lagres er `sha256(secret):timeStep`
+     * — ikke råkoden — slik at settet kan deles på tvers av brukere uten kollisjon.
+     *
+     * **Begrensninger**: Settet er prosess-lokalt. Ved horisontal skalering (flere instanser) gir
+     * ikke et lokalt sett replay-beskyttelse på tvers av noder — bruk et delt lager (f.eks. Redis)
+     * i slike oppsett. Uten [usedCodes] (default null) er replay tillatt — bakoverkompatibel oppførsel.
+     *
      * @param encryptedSecret Kryptert hemmelighet fra databasen
      * @param encryptionKey 64 hex-tegn AES-256-nokkel
      * @param code 6-sifret TOTP-kode fra autentiserings-appen
-     * @param devMode Hvis true, aksepteres "123456" alltid (for utvikling — samme som OtpUtils.DEV_CODE)
-     * @return true hvis koden er gyldig
+     * @param devMode Hvis true, aksepteres "123456" alltid (replay-sjekk hoppes over i dev-modus)
+     * @param usedCodes Trådsikkert sett for replay-beskyttelse (`ConcurrentHashMap.newKeySet()`).
+     *   Null = ingen replay-sjekk (bakoverkompatibel). Appen er ansvarlig for TTL/cleanup.
+     * @return true hvis koden er gyldig og ikke allerede brukt
      */
     fun verifyTotp(
         encryptedSecret: String,
         encryptionKey: String,
         code: String,
-        devMode: Boolean = false
+        devMode: Boolean = false,
+        usedCodes: MutableSet<String>? = null
     ): Boolean {
         if (devMode && code == DEV_TOTP_CODE) return true
 
         val secretBytes = decryptSecret(encryptedSecret, encryptionKey) ?: return false
-        return verifyCode(secretBytes, code)
+        val matchedCounter = verifyCode(secretBytes, code) ?: return false
+
+        if (usedCodes != null) {
+            val secretHash = MessageDigest.getInstance("SHA-256").digest(secretBytes)
+                .take(16).joinToString("") { "%02x".format(it) }
+            val replayKey = "$secretHash:$matchedCounter"
+            if (!usedCodes.add(replayKey)) return false
+        }
+
+        return true
     }
 
     /**
@@ -153,7 +176,7 @@ object TotpService {
         return Base64.getDecoder().decode(secret)
     }
 
-    private fun verifyCode(secretBytes: ByteArray, code: String): Boolean {
+    private fun verifyCode(secretBytes: ByteArray, code: String): Long? {
         val config = TimeBasedOneTimePasswordConfig(
             timeStep = TIME_STEP_SECONDS.toLong(),
             timeStepUnit = TimeUnit.SECONDS,
@@ -166,9 +189,9 @@ object TotpService {
         for (offset in -WINDOW_SIZE..WINDOW_SIZE) {
             val timestamp = now.plusSeconds(offset * TIME_STEP_SECONDS.toLong())
             val expectedCode = generator.generate(timestamp)
-            if (code == expectedCode) return true
+            if (code == expectedCode) return timestamp.epochSecond / TIME_STEP_SECONDS
         }
-        return false
+        return null
     }
 
     private fun buildOtpAuthUri(secretBytes: ByteArray, issuer: String, accountName: String): String {
