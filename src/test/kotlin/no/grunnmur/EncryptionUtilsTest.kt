@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 class EncryptionUtilsTest {
 
@@ -138,6 +140,24 @@ class EncryptionUtilsTest {
             val key = EncryptionUtils.generateKey()
             val encrypted = EncryptionUtils.encrypt("test", key)
             assertEquals("test", EncryptionUtils.decrypt(encrypted, key))
+        }
+    }
+
+    @Nested
+    inner class ConcurrentUsage {
+        @Test
+        fun `krypterer og dekrypterer korrekt under parallell last (delt SecureRandom-instans)`() {
+            val pool = Executors.newFixedThreadPool(8)
+            val futures = mutableListOf<Future<*>>()
+            repeat(40) { i ->
+                futures += pool.submit {
+                    val plaintext = "Parallell tekst $i"
+                    val encrypted = EncryptionUtils.encrypt(plaintext, testKey)
+                    assertEquals(plaintext, EncryptionUtils.decrypt(encrypted, testKey))
+                }
+            }
+            futures.forEach { it.get() }
+            pool.shutdown()
         }
     }
 

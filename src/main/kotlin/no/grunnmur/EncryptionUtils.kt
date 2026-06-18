@@ -21,6 +21,7 @@ object EncryptionUtils {
     private const val GCM_IV_LENGTH = 12  // 96 bits, anbefalt for GCM
     private const val GCM_TAG_LENGTH = 128 // 128 bits autentiseringstagg
     private const val KEY_LENGTH_BYTES = 32 // 256 bits
+    private val secureRandom = SecureRandom()
 
     /**
      * Krypterer en tekststreng med AES-256-GCM.
@@ -33,7 +34,7 @@ object EncryptionUtils {
     fun encrypt(plaintext: String, hexKey: String): String {
         val keySpec = parseKey(hexKey)
         val iv = ByteArray(GCM_IV_LENGTH)
-        SecureRandom().nextBytes(iv)
+        secureRandom.nextBytes(iv)
 
         val cipher = Cipher.getInstance(ALGORITHM)
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
@@ -84,7 +85,7 @@ object EncryptionUtils {
      */
     fun generateKey(): String {
         val bytes = ByteArray(KEY_LENGTH_BYTES)
-        SecureRandom().nextBytes(bytes)
+        secureRandom.nextBytes(bytes)
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
