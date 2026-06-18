@@ -339,6 +339,19 @@ class AuditLogServiceTest {
     }
 
     @Nested
+    inner class IdType {
+        @Test
+        fun `AuditLogEntry id er Long ikke Int`() = runBlocking {
+            service.log(userId = 1, action = "TYPE_CHECK", entityType = "TEST")
+            val entries = service.findAll()
+            assertEquals(1, entries.size)
+            // id skal være Long (BIGSERIAL) — vil ikke kompilere hvis id er Int
+            val id: Long = entries[0].id
+            assertTrue(id > 0L)
+        }
+    }
+
+    @Nested
     inner class CleanupOldLogs {
         @Test
         fun `cleanupOldLogs returnerer 0 naar ingen er eldre enn retention`() = runBlocking {

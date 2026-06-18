@@ -130,6 +130,16 @@ class AuditLogServiceIntegrationTest {
     }
 
     @Test
+    fun `AuditLogEntry id er Long ikke Int mot ekte PostgreSQL`() = runBlocking {
+        service.log(userId = 1, action = "TYPE_CHECK", entityType = "TEST")
+        val entries = service.findAll()
+        assertEquals(1, entries.size)
+        // id skal være Long (BIGSERIAL) — vil ikke kompilere hvis id er Int
+        val id: Long = entries[0].id
+        assertTrue(id > 0L)
+    }
+
+    @Test
     fun `cleanupOldLogs sletter rader eldre enn retentionDays mot ekte PostgreSQL`() = runBlocking {
         val now = TimeUtils.nowOslo()
         insertWithCreatedAt("GAMMEL", now.minusDays(400))
