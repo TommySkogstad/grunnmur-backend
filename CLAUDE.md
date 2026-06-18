@@ -180,7 +180,7 @@ Felles Flyway-konfigurasjon: baselineOnMigrate=true, baselineVersion="0", cleanD
 **Testdekning**: `FlywayMigrationIntegrationTest` (tagged `@Testcontainers`) kjorer mot PostgreSQL 16 via Testcontainers for aa validere DDL-kompatibilitet. Tidligere var kun H2-basert testing tilgjengelig, som ga falsk trygghet.
 
 #### AuditLogTable (`AuditLogTable.kt`) — object AuditLogs : Table("audit_logs")
-Exposed-tabelldefinisjón: id, userId, userEmail, action, entityType, entityId, details, ipAddress, createdAt.
+Exposed-tabelldefinisjón: id (BIGINT), userId (INTEGER), userEmail (VARCHAR), action (VARCHAR), entityType (VARCHAR), entityId (BIGINT), details (TEXT), ipAddress (VARCHAR), createdAt (TIMESTAMP).
 Indekser: (entityType, entityId), (createdAt), (userId).
 
 #### AuditLogService (`AuditLogService.kt`) — class
@@ -191,7 +191,7 @@ Revisjonslogging med streng-basert action/entityType (apper definerer egne enums
 - `suspend count(action?, entityType?, userId?, startDate?, endDate?): Long` — startDate/endDate tolkes som Europe/Oslo datoer
 - `suspend cleanupOldLogs(retentionDays: Int = 365): Int` — sletter logger eldre enn retentionDays basert på Oslo-tid
 
-`AuditLogEntry` (data class): id, userId, userEmail, action, entityType, entityId (Long?), details, ipAddress, timestamp
+`AuditLogEntry` (data class): id (Long), userId (Int?), userEmail (String), action (String), entityType (String), entityId (Long?), details (String?), ipAddress (String?), timestamp (LocalDateTime)
 
 **Testdekning**: `AuditLogServiceIntegrationTest` (tagged `@Testcontainers`) kjorer mot PostgreSQL 16 via Testcontainers for aa validere datofiltrering og cleanup-logikk. Sikrer korrekt Oslo-tid-semantikk mot ekte databasen.
 

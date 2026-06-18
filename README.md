@@ -246,7 +246,7 @@ auditLog.cleanupOldLogs(retentionDays = 365)
 
 **AuditLogs** (object: Table) — Exposed-tabelldefinisjonen.
 
-**AuditLogEntry** (data class) — DTO med id, userId, userEmail, action, entityType, entityId, details, ipAddress, timestamp.
+**AuditLogEntry** (data class) — DTO med id (Long), userId (Int?), userEmail (String), action (String), entityType (String), entityId (Long?), details (String?), ipAddress (String?), timestamp (LocalDateTime).
 
 #### PaginatedResponse (`PaginatedResponse.kt`)
 Generisk paginert responsformat for API-endepunkter.
