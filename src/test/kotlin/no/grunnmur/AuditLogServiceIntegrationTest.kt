@@ -193,4 +193,81 @@ class AuditLogServiceIntegrationTest {
         assertEquals(2, listResult.size)
         assertEquals(countResult, listResult.size.toLong())
     }
+
+    @Test
+    fun `findAllPaged total ignorerer limit og offset mot ekte PostgreSQL`() = runBlocking {
+        val now = TimeUtils.nowOslo()
+        repeat(5) { insertWithCreatedAt("A", now.minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(limit = 2)
+
+        assertEquals(2, result.items.size)
+        assertEquals(5L, result.total)
+        assertEquals(2, result.limit)
+        assertEquals(0L, result.offset)
+    }
+
+    @Test
+    fun `findAllPaged offset returnerer korrekt side med uendret total mot ekte PostgreSQL`() = runBlocking {
+        val now = TimeUtils.nowOslo()
+        repeat(5) { insertWithCreatedAt("A", now.minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(limit = 2, offset = 2)
+
+        assertEquals(2, result.items.size)
+        assertEquals(5L, result.total)
+    }
+
+    @Test
+    fun `findAllPaged filter pavirker items og total konsistent mot ekte PostgreSQL`() = runBlocking {
+        val now = TimeUtils.nowOslo()
+        repeat(3) { insertWithCreatedAt("TYPE_A", now.minusMinutes(it.toLong())) }
+        repeat(2) { insertWithCreatedAt("TYPE_B", now.minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(action = "TYPE_A")
+
+        assertEquals(3, result.items.size)
+        assertEquals(3L, result.total)
+        assertTrue(result.items.all { it.action == "TYPE_A" })
+    }
+
+    @Test
+    fun `findAllPaged limit 0 clampes til 1 mot ekte PostgreSQL`() = runBlocking {
+        insertWithCreatedAt("A", TimeUtils.nowOslo())
+
+        val result = service.findAllPaged(limit = 0)
+
+        assertEquals(1, result.limit)
+        assertEquals(1, result.items.size)
+    }
+
+    @Test
+    fun `findAllPaged limit over MAX_LIMIT clampes mot ekte PostgreSQL`() = runBlocking {
+        repeat(3) { insertWithCreatedAt("A", TimeUtils.nowOslo().minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(limit = 5000)
+
+        assertEquals(AuditLogService.MAX_LIMIT, result.limit)
+        assertEquals(3, result.items.size)
+    }
+
+    @Test
+    fun `findAllPaged returnerer tom items og total 0 naar filter ikke matcher mot ekte PostgreSQL`() = runBlocking {
+        insertWithCreatedAt("FINNES", TimeUtils.nowOslo())
+
+        val result = service.findAllPaged(action = "FINNES_IKKE")
+
+        assertTrue(result.items.isEmpty())
+        assertEquals(0L, result.total)
+    }
+
+    @Test
+    fun `findAllPaged offset utenfor omradet returnerer tom items men korrekt total mot ekte PostgreSQL`() = runBlocking {
+        repeat(3) { insertWithCreatedAt("A", TimeUtils.nowOslo().minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(limit = 10, offset = 100)
+
+        assertTrue(result.items.isEmpty())
+        assertEquals(3L, result.total)
+    }
 }

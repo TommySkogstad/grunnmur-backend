@@ -107,6 +107,43 @@ class AuditLogService {
     }
 
     /**
+     * Henter revisjonslogger med filtrering og paginering i én transaksjon.
+     *
+     * I motsetning til separate kall til [findAll] og [count] kjoeres baade
+     * uthenting av rader og total-telling innenfor samme transaction{}-blokk,
+     * slik at items og total er konsistente (ingen ghost reads mellom de to spoerringene).
+     *
+     * @return [PaginatedResponse] med items for gjeldende side og total antall rader som matcher filteret.
+     */
+    suspend fun findAllPaged(
+        action: String? = null,
+        entityType: String? = null,
+        userId: Int? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        limit: Int = 100,
+        offset: Long = 0
+    ): PaginatedResponse<AuditLogEntry> {
+        val effectiveLimit = limit.coerceIn(1, MAX_LIMIT)
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val totalQuery = AuditLogs.selectAll()
+                applyFilters(totalQuery, action, entityType, userId, startDate, endDate)
+                val total = totalQuery.count()
+
+                val itemsQuery = AuditLogs.selectAll()
+                applyFilters(itemsQuery, action, entityType, userId, startDate, endDate)
+                val items = itemsQuery
+                    .orderBy(AuditLogs.createdAt, SortOrder.DESC)
+                    .limit(effectiveLimit).offset(offset)
+                    .map { it.toAuditLogEntry() }
+
+                PaginatedResponse(items = items, total = total, limit = effectiveLimit, offset = offset)
+            }
+        }
+    }
+
+    /**
      * Sletter gamle logger basert paa retention-policy.
      * @return Antall slettede rader
      */
