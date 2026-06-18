@@ -55,6 +55,14 @@ fun ApplicationCall.checkRateLimit(
  * 2. X-Real-IP (Nginx)
  * 3. X-Forwarded-For (standard proxy-header, foerste IP)
  * 4. remoteAddress (direkte tilkobling / fallback)
+ *
+ * **ADVARSEL — SPOOFING:** Alle headers (X-Forwarded-For, X-Real-IP) kan forfalskes av klienten
+ * ved direkte containertilgang eller i testmiljoeer uten proxy. CF-Connecting-IP er kun paalitelig
+ * naar trafikken faktisk gaar gjennom Cloudflare-proxyen.
+ *
+ * For rate limiting er spoofbar IP akseptabelt (degraderer til mindre presis nokkel).
+ * Bruk den ALDRI som eneste sikkerhetsgrense for tilgangskontroll eller IP-allowlisting
+ * uten at en betrodd proxy garanterer headerverdien.
  */
 fun ApplicationCall.getClientIp(): String {
     return request.header("CF-Connecting-IP")
