@@ -258,6 +258,20 @@ class ValidatorsTest {
             assertFalse(Validators.validatePassword("password2024!").isValid)
             assertFalse(Validators.validatePassword("sunshine123!!").isValid)
         }
+
+        @Test
+        fun `6-7-tegns rotord med siffer avvises etter terskelendring i 238`() {
+            assertFalse(Validators.validatePassword("Dragon12").isValid)
+            assertFalse(Validators.validatePassword("Shadow12").isValid)
+            assertFalse(Validators.validatePassword("Master12").isValid)
+            assertFalse(Validators.validatePassword("Hunter12").isValid)
+            assertFalse(Validators.validatePassword("Pokemon12").isValid)
+            assertFalse(Validators.validatePassword("Thomas12").isValid)
+            assertFalse(Validators.validatePassword("Daniel12").isValid)
+            assertFalse(Validators.validatePassword("Robert12").isValid)
+            assertFalse(Validators.validatePassword("George12").isValid)
+            assertFalse(Validators.validatePassword("Jordan12").isValid)
+        }
     }
 
     @Nested
