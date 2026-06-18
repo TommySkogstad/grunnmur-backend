@@ -109,9 +109,11 @@ class AuditLogService {
     /**
      * Henter revisjonslogger med filtrering og paginering i én transaksjon.
      *
-     * I motsetning til separate kall til [findAll] og [count] kjoeres baade
-     * uthenting av rader og total-telling innenfor samme transaction{}-blokk,
-     * slik at items og total er konsistente (ingen ghost reads mellom de to spoerringene).
+     * Kjorer baade uthenting av rader og total-telling innenfor samme transaction{}-blokk,
+     * noe som *reduserer* risikoen for uoverensstemmelse mellom items og total sammenlignet
+     * med to separate transaksjoner. Merk: PostgreSQL bruker READ COMMITTED som standard
+     * isolasjonsnivaa, saa en concurrent-commit mellom de to SELECT-ene kan fortsatt endre
+     * total. For streng konsistens maa isolasjonsnivaaet heves til REPEATABLE READ.
      *
      * @return [PaginatedResponse] med items for gjeldende side og total antall rader som matcher filteret.
      */
@@ -125,6 +127,7 @@ class AuditLogService {
         offset: Long = 0
     ): PaginatedResponse<AuditLogEntry> {
         val effectiveLimit = limit.coerceIn(1, MAX_LIMIT)
+        val effectiveOffset = offset.coerceAtLeast(0L)
         return withContext(Dispatchers.IO) {
             transaction {
                 val totalQuery = AuditLogs.selectAll()
@@ -135,10 +138,10 @@ class AuditLogService {
                 applyFilters(itemsQuery, action, entityType, userId, startDate, endDate)
                 val items = itemsQuery
                     .orderBy(AuditLogs.createdAt, SortOrder.DESC)
-                    .limit(effectiveLimit).offset(offset)
+                    .limit(effectiveLimit).offset(effectiveOffset)
                     .map { it.toAuditLogEntry() }
 
-                PaginatedResponse(items = items, total = total, limit = effectiveLimit, offset = offset)
+                PaginatedResponse(items = items, total = total, limit = effectiveLimit, offset = effectiveOffset)
             }
         }
     }
