@@ -244,6 +244,20 @@ class ValidatorsTest {
             assertFalse(Validators.validatePassword("11111111a").isValid)
             assertFalse(Validators.validatePassword("22222222b").isValid)
         }
+
+        @Test
+        fun `sterke passord med vanlige rotord skal ikke avvises`() {
+            assertTrue(Validators.validatePassword("Daniella2024!").isValid)
+            assertTrue(Validators.validatePassword("Masterchef9000").isValid)
+            assertTrue(Validators.validatePassword("Dragonfly2025!").isValid)
+            assertTrue(Validators.validatePassword("HunterGatherer3!").isValid)
+        }
+
+        @Test
+        fun `lange vanlige basisord avvises fortsatt som substring`() {
+            assertFalse(Validators.validatePassword("password2024!").isValid)
+            assertFalse(Validators.validatePassword("sunshine123!!").isValid)
+        }
     }
 
     @Nested

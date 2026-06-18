@@ -207,7 +207,7 @@ object Validators {
 
         val lower = password.lowercase()
         val isCommon = commonPasswordSet.contains(lower) ||
-            commonPasswordSet.any { it.length >= 6 && lower.contains(it) }
+            commonPasswordSet.any { it.length >= 8 && lower.contains(it) }
         if (isCommon || SEASONAL_REGEX.matches(lower)) errors.add("Passord er for enkelt")
 
         return if (errors.isEmpty()) ValidationResult.valid() else ValidationResult(false, errors)
