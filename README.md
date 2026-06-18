@@ -244,7 +244,11 @@ auditLog.cleanupOldLogs(retentionDays = 365)
 | `count` | `suspend (action?, entityType?, userId?, startDate?, endDate?): Long` | Teller med filtrering |
 | `cleanupOldLogs` | `suspend (retentionDays: Int = 365): Int` | Sletter gamle logger |
 
-**AuditLogs** (object: Table) — Exposed-tabelldefinisjonen.
+**AuditLogs** (object: Table) — Exposed-tabelldefinisjonen. `id` er nå `BIGINT/BIGSERIAL` for å unngå overflow ved langtidsdrift. Eksisterende installasjoner opprettet med SERIAL/INTEGER fortsetter å fungere (Exposed leser INTEGER som long), men for å få BIGINT-taket må appene kjøre Flyway-migrasjon:
+```sql
+ALTER SEQUENCE audit_logs_id_seq AS bigint;  -- PostgreSQL 10+
+ALTER TABLE audit_logs ALTER COLUMN id TYPE BIGINT;
+```
 
 **AuditLogEntry** (data class) — DTO med id (Long), userId (Int?), userEmail (String), action (String), entityType (String), entityId (Long?), details (String?), ipAddress (String?), timestamp (LocalDateTime).
 

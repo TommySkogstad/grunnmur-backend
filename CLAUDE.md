@@ -183,6 +183,8 @@ Felles Flyway-konfigurasjon: baselineOnMigrate=true, baselineVersion="0", cleanD
 Exposed-tabelldefinisjón: id (BIGINT), userId (INTEGER), userEmail (VARCHAR), action (VARCHAR), entityType (VARCHAR), entityId (BIGINT), details (TEXT), ipAddress (VARCHAR), createdAt (TIMESTAMP).
 Indekser: (entityType, entityId), (createdAt), (userId).
 
+**Oppgradering av eksisterende installasjoner:** `id` ble tidligere opprettet som SERIAL/INTEGER (tak ~2,1 mrd). Exposed leser INTEGER som long uten feil, så eksisterende tabeller fortsetter å fungere. For å få BIGINT-taket må appene kjøre en Flyway-migrasjon: `ALTER SEQUENCE audit_logs_id_seq AS bigint; ALTER TABLE audit_logs ALTER COLUMN id TYPE BIGINT;`
+
 #### AuditLogService (`AuditLogService.kt`) — class
 Revisjonslogging med streng-basert action/entityType (apper definerer egne enums). Alle metoder er suspenderende og bruker `Dispatchers.IO` for databaseoperasjoner. Feil i logging stopper ikke hovedoperasjonen og logges med full stack trace.
 
