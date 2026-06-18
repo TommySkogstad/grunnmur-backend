@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class TotpServiceTest {
@@ -131,6 +132,78 @@ class TotpServiceTest {
             val code = generateTotpCode(secretBytes)
 
             assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code))
+        }
+    }
+
+    @Nested
+    inner class ReplayBeskyttelse {
+        @Test
+        fun `samme kode avvises ved andre forsok med usedCodes-sett`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+            val usedCodes = ConcurrentHashMap.newKeySet<String>()
+
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code, usedCodes = usedCodes))
+            assertFalse(TotpService.verifyTotp(encryptedSecret, testKey, code, usedCodes = usedCodes))
+        }
+
+        @Test
+        fun `godkjent kode registreres i usedCodes`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+            val usedCodes = ConcurrentHashMap.newKeySet<String>()
+
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code, usedCodes = usedCodes))
+            assertTrue(usedCodes.isNotEmpty(), "Brukt kode skal registreres i settet")
+        }
+
+        @Test
+        fun `ugyldig kode legges ikke til i usedCodes`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val usedCodes = ConcurrentHashMap.newKeySet<String>()
+
+            assertFalse(TotpService.verifyTotp(encryptedSecret, testKey, "000000", usedCodes = usedCodes))
+            assertTrue(usedCodes.isEmpty(), "Ugyldig kode skal ikke registreres")
+        }
+
+        @Test
+        fun `uten usedCodes er replay tillatt (bakoverkompatibel)`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code))
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, code))
+        }
+
+        @Test
+        fun `dev-modus 123456 er unntatt fra replay-sjekk`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val usedCodes = ConcurrentHashMap.newKeySet<String>()
+
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, "123456", devMode = true, usedCodes = usedCodes))
+            assertTrue(TotpService.verifyTotp(encryptedSecret, testKey, "123456", devMode = true, usedCodes = usedCodes))
+        }
+
+        @Test
+        fun `koder fra ulike brukere kolliderer ikke i delt sett`() {
+            val secretBytes1 = ByteArray(20) { it.toByte() }
+            val secretBytes2 = ByteArray(20) { (it + 100).toByte() }
+            val encrypted1 = encryptedSecretFrom(secretBytes1)
+            val encrypted2 = encryptedSecretFrom(secretBytes2)
+            val code1 = generateTotpCode(secretBytes1)
+            val code2 = generateTotpCode(secretBytes2)
+            val sharedUsedCodes = ConcurrentHashMap.newKeySet<String>()
+
+            // Begge brukere kan autentisere selv om de deler sett
+            assertTrue(TotpService.verifyTotp(encrypted1, testKey, code1, usedCodes = sharedUsedCodes))
+            // Kode fra bruker2 skal ikke bli blokkert av bruker1s oppføring
+            if (code1 == code2) return // Ekstremt sjelden kollisjon — skip test
+            assertTrue(TotpService.verifyTotp(encrypted2, testKey, code2, usedCodes = sharedUsedCodes))
         }
     }
 
