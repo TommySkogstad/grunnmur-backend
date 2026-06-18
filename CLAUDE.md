@@ -127,11 +127,11 @@ AES-256-GCM-kryptering. Nokler: 64 hex-tegn (32 bytes). Output: Base64(IV || cip
 - `base64KeyToHex(base64Key: String): String` — for migrering
 
 #### TotpService (`TotpService.kt`) — object
-TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, ±2 vinduer = ±60 sekunder. Bruker EncryptionUtils for kryptering. Dev-kode: "123456".
+TOTP tofaktorautentisering (RFC 6238). SHA1, 30s steg, 6 siffer, ±2 vinduer = ±60 sekunder. Bruker EncryptionUtils for kryptering. Dev-kode: "123456". Støtter valgfri replay-beskyttelse for å hindre gjenbruk av interceptert kode.
 
 - `setupTotp(encryptionKey: String, issuer: String, accountName: String): TotpSetupResult` — genererer hemmelighet + QR-URI
 - `confirmTotp(encryptedSecret: String, encryptionKey: String, code: String): Boolean`
-- `verifyTotp(encryptedSecret: String, encryptionKey: String, code: String, devMode: Boolean = false): Boolean`
+- `verifyTotp(encryptedSecret: String, encryptionKey: String, code: String, devMode: Boolean = false, usedCodes: MutableSet<String>? = null): Boolean` — verifiserer kode; `usedCodes` lagrer `sha256(secret):timeStep` for replay-sjekk (uten det er replay tillatt). Prosess-lokalt sett — for horisontal skalering, bruk delt lager (f.eks. Redis). Appen er ansvarlig for TTL/cleanup av oppføringer eldre enn 120 sekunder.
 - `generateBackupCodes(count: Int = 10): List<String>` — format XXXX-XXXX
 - `verifyBackupCode(code: String, encryptedCodes: String, encryptionKey: String): Pair<Boolean, String?>` — returnerer (gyldig, oppdaterte krypterte koder)
 - `encryptBackupCodes(codes: List<String>, encryptionKey: String): String`
