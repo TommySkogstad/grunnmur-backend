@@ -270,4 +270,29 @@ class AuditLogServiceIntegrationTest {
         assertTrue(result.items.isEmpty())
         assertEquals(3L, result.total)
     }
+
+    @Test
+    fun `findAllPaged negativ offset clampes til 0 mot ekte PostgreSQL`() = runBlocking {
+        repeat(3) { insertWithCreatedAt("A", TimeUtils.nowOslo().minusMinutes(it.toLong())) }
+
+        val result = service.findAllPaged(limit = 10, offset = -5)
+
+        assertEquals(3, result.items.size)
+        assertEquals(3L, result.total)
+        assertEquals(0L, result.offset)
+    }
+
+    @Test
+    fun `findAllPaged datofilter pavirker baade items og total mot ekte PostgreSQL`() = runBlocking {
+        val now = TimeUtils.nowOslo()
+        insertWithCreatedAt("GAMMEL", now.minusDays(10))
+        insertWithCreatedAt("NY1", now)
+        insertWithCreatedAt("NY2", now.minusHours(1))
+
+        val cutoff = now.minusDays(1).toLocalDate().toString()
+        val result = service.findAllPaged(startDate = cutoff)
+
+        assertEquals(2, result.items.size)
+        assertEquals(2L, result.total)
+    }
 }
