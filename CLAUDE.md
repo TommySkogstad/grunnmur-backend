@@ -161,7 +161,7 @@ One-Time Password med SHA-256. Dev-modus: kode "123456" fungerer alltid. Lagring
 - `requireIntParam(name: String): Int` — kaster BadRequestException
 - `requireParam(name: String): String` — kaster BadRequestException
 - `checkRateLimit(allowed: Boolean, message: String, retryAfterSeconds: Long?)` — kaster RateLimitException
-- `getClientIp(): String` — sjekker CF-Connecting-IP -> X-Real-IP -> X-Forwarded-For -> remoteAddress
+- `getClientIp(): String` — sjekker CF-Connecting-IP -> X-Real-IP -> X-Forwarded-For -> remoteAddress. **ADVARSEL: Alle headers kan forfalskes av klienten ved direkte tilgang uten betrodd proxy. Bruk ALDRI som eneste sikkerhetgrense for IP-basert tilgangskontroll eller IP-allowlisting.**
 
 #### StatusPagesConfig (`StatusPagesConfig.kt`) — extension function paa StatusPagesConfig
 `grunnmurExceptionHandlers(isProduction: Boolean = System.getenv("KTOR_ENV") == "production")` — mapper grunnmur-exceptions til HTTP-statuskoder:
@@ -191,6 +191,7 @@ Revisjonslogging med streng-basert action/entityType (apper definerer egne enums
 - `suspend log(userId: Int?, userEmail: String = "system", action: String, entityType: String, entityId: Long? = null, details: String? = null, ipAddress: String? = null)` — logger med `TimeUtils.nowOslo()`
 - `suspend findAll(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): List<AuditLogEntry>` — startDate/endDate tolkes som Europe/Oslo datoer; limit clampes til [1, MAX_LIMIT] (MAX_LIMIT = 1000)
 - `suspend count(action?, entityType?, userId?, startDate?, endDate?): Long` — startDate/endDate tolkes som Europe/Oslo datoer
+- `suspend findAllPaged(action?, entityType?, userId?, startDate?, endDate?, limit = 100, offset = 0): PaginatedResponse<AuditLogEntry>` — kombinerer henting og telling i én transaksjon for bedre konsistens. startDate/endDate tolkes som Europe/Oslo datoer; limit clampes til [1, MAX_LIMIT]; offset clampes til ≥0
 - `suspend cleanupOldLogs(retentionDays: Int = 365): Int` — sletter logger eldre enn retentionDays basert på Oslo-tid
 
 `AuditLogEntry` (data class): id (Long), userId (Int?), userEmail (String), action (String), entityType (String), entityId (Long?), details (String?), ipAddress (String?), timestamp (LocalDateTime)
