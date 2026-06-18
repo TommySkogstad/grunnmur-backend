@@ -199,11 +199,22 @@ class TotpServiceTest {
             val code2 = generateTotpCode(secretBytes2)
             val sharedUsedCodes = ConcurrentHashMap.newKeySet<String>()
 
-            // Begge brukere kan autentisere selv om de deler sett
+            // Begge brukere kan autentisere selv om de deler sett.
+            // Nøkkelen i usedCodes er secretHash:counter — ikke råkoden — så lik 6-sifret kode er
+            // ikke en kollisjon: ulike hemmeligheter gir ulike secretHash og dermed ulike nøkler.
             assertTrue(TotpService.verifyTotp(encrypted1, testKey, code1, usedCodes = sharedUsedCodes))
-            // Kode fra bruker2 skal ikke bli blokkert av bruker1s oppføring
-            if (code1 == code2) return // Ekstremt sjelden kollisjon — skip test
             assertTrue(TotpService.verifyTotp(encrypted2, testKey, code2, usedCodes = sharedUsedCodes))
+        }
+
+        @Test
+        fun `confirmTotp er uberort av replay-logikk`() {
+            val secretBytes = ByteArray(20) { it.toByte() }
+            val encryptedSecret = encryptedSecretFrom(secretBytes)
+            val code = generateTotpCode(secretBytes)
+
+            // confirmTotp har ingen usedCodes-parameter — replay er ikke relevant under TOTP-oppsett
+            assertTrue(TotpService.confirmTotp(encryptedSecret, testKey, code))
+            assertTrue(TotpService.confirmTotp(encryptedSecret, testKey, code))
         }
     }
 

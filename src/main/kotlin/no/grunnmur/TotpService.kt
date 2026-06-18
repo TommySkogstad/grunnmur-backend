@@ -78,7 +78,9 @@ object TotpService {
      * @param code 6-sifret TOTP-kode fra autentiserings-appen
      * @param devMode Hvis true, aksepteres "123456" alltid (replay-sjekk hoppes over i dev-modus)
      * @param usedCodes Trådsikkert sett for replay-beskyttelse (`ConcurrentHashMap.newKeySet()`).
-     *   Null = ingen replay-sjekk (bakoverkompatibel). Appen er ansvarlig for TTL/cleanup.
+     *   Null = ingen replay-sjekk (bakoverkompatibel). Appen er ansvarlig for TTL/cleanup —
+     *   uten periodisk tømming vokser settet ubegrenset. Counters eldre enn 120 sekunder kan
+     *   trygt fjernes (to tidssteg à 30s på hver side av nåtid).
      * @return true hvis koden er gyldig og ikke allerede brukt
      */
     fun verifyTotp(
