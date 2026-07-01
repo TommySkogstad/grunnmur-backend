@@ -95,6 +95,7 @@ post("/api/auth/send-otp") {
 | `authRateLimiterWithIdentifier()` | IP: 5/min + 10/time, identifikator: 5/15min | For send-otp med telefon/e-post — returnerer `AuthRateLimiter` |
 | `apiRateLimiterAuthenticated()` | 60/min per IP | For autentiserte API-ruter — returnerer `RateLimiter` |
 | `apiRateLimiterAnonymous()` | 20/min per IP | For åpne API-ruter — returnerer `RateLimiter` |
+| `imageUploadRateLimiter()` | 12/time per IP | For bildeopplasting — returnerer `RateLimiter` |
 
 ```kotlin
 // Opprett én gang ved appstart
@@ -196,7 +197,7 @@ val clientIp = call.getClientIp()
 |----------|----------|-------------|
 | `requireIntParam` | `(name: String): Int` | Henter int-param, kaster BadRequestException |
 | `requireParam` | `(name: String): String` | Henter string-param, kaster BadRequestException |
-| `checkRateLimit` | `(allowed: Boolean, message: String)` | Kaster RateLimitException |
+| `checkRateLimit` | `(allowed: Boolean, message: String, retryAfterSeconds: Long?)` | Kaster RateLimitException |
 | `getClientIp` | `(): String` | IP via CF-Connecting-IP / X-Real-IP / X-Forwarded-For |
 
 #### StatusPagesConfig (`StatusPagesConfig.kt`)
@@ -241,6 +242,7 @@ auditLog.cleanupOldLogs(retentionDays = 365)
 |----------|----------|-------------|
 | `log` | `suspend (userId, userEmail, action, entityType, entityId?, details?, ipAddress?)` | Logger handling |
 | `findAll` | `suspend (action?, entityType?, userId?, startDate?, endDate?, limit, offset): List<AuditLogEntry>` | Henter med filtrering |
+| `findAllPaged` | `suspend (action?, entityType?, userId?, startDate?, endDate?, limit, offset): PaginatedResponse<AuditLogEntry>` | Henter med filtrering og telling i én transaksjon |
 | `count` | `suspend (action?, entityType?, userId?, startDate?, endDate?): Long` | Teller med filtrering |
 | `cleanupOldLogs` | `suspend (retentionDays: Int = 365): Int` | Sletter gamle logger |
 
