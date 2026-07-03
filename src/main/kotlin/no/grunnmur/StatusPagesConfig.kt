@@ -60,6 +60,14 @@ fun StatusPagesConfig.grunnmurExceptionHandlers(
         )
     }
 
+    exception<GitHubApiException> { call, cause ->
+        call.application.log.warn("GitHub API-feil (status=${cause.statusCode}): ${cause.message}")
+        call.respond(
+            HttpStatusCode.BadGateway,
+            mapOf("error" to "GitHub API er midlertidig utilgjengelig. Proev igjen.")
+        )
+    }
+
     exception<IllegalArgumentException> { call, cause ->
         call.application.log.warn("Ugyldig input: ${cause.message}")
         call.respond(
