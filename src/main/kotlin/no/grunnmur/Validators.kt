@@ -60,6 +60,42 @@ object Validators {
         email.isNotBlank() && email.length < 255 && EMAIL_REGEX.matches(email.trim())
 
     /**
+     * Kaster BadRequestException hvis e-postadressen er ugyldig (kanonisk regex, se validateEmail).
+     * Throw-stil for konsumenter som vil unngaa aa pakke ut ValidationResult manuelt —
+     * fanges av grunnmurExceptionHandlers og gir 400.
+     *
+     * @return den trimmede e-postadressen hvis gyldig.
+     */
+    fun requireValidEmail(value: String, fieldName: String = "E-post"): String {
+        val trimmed = value.trim()
+        val result = validateEmail(trimmed)
+        if (!result.isValid) throw BadRequestException(result.error ?: "$fieldName er ugyldig")
+        return trimmed
+    }
+
+    /**
+     * Kaster BadRequestException hvis verdien er null eller blank.
+     *
+     * @return den trimmede verdien hvis ikke blank.
+     */
+    fun requireNonBlank(value: String?, fieldName: String): String {
+        if (value.isNullOrBlank()) throw BadRequestException("$fieldName kan ikke vaere tomt")
+        return value.trim()
+    }
+
+    /**
+     * Kaster BadRequestException hvis verdien er lengre enn maxLength.
+     *
+     * @return verdien uendret hvis innenfor lengdegrensen.
+     */
+    fun requireMaxLength(value: String, fieldName: String, maxLength: Int): String {
+        if (value.length > maxLength) {
+            throw BadRequestException("$fieldName kan ikke vaere lengre enn $maxLength tegn")
+        }
+        return value
+    }
+
+    /**
      * Validerer telefonnummer (valgfritt felt).
      *
      * @param strict Hvis true, krever norsk 8-siffer med forste siffer 2-9. Default: true.

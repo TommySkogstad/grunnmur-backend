@@ -44,6 +44,53 @@ class ValidatorsTest {
             assertFalse(Validators.isValidEmail("a@b"))
             assertFalse(Validators.isValidEmail("user@localhost"))
         }
+
+        @Test
+        fun `requireValidEmail returnerer trimmet verdi for gyldig e-post`() {
+            assertEquals("test@example.com", Validators.requireValidEmail("  test@example.com  "))
+        }
+
+        @Test
+        fun `requireValidEmail kaster BadRequestException for ugyldig e-post`() {
+            val ex = assertThrows(BadRequestException::class.java) {
+                Validators.requireValidEmail("ikke-epost")
+            }
+            assertEquals("Ugyldig e-postformat", ex.message)
+        }
+
+        @Test
+        fun `requireValidEmail kaster BadRequestException for single-label domene`() {
+            assertThrows(BadRequestException::class.java) {
+                Validators.requireValidEmail("user@localhost")
+            }
+        }
+    }
+
+    @Nested
+    inner class RequireHelpers {
+        @Test
+        fun `requireNonBlank returnerer trimmet verdi`() {
+            assertEquals("Ola", Validators.requireNonBlank("  Ola  ", "Navn"))
+        }
+
+        @Test
+        fun `requireNonBlank kaster BadRequestException for null og blank`() {
+            assertThrows(BadRequestException::class.java) { Validators.requireNonBlank(null, "Navn") }
+            assertThrows(BadRequestException::class.java) { Validators.requireNonBlank("   ", "Navn") }
+        }
+
+        @Test
+        fun `requireMaxLength godtar verdi innenfor grensen`() {
+            assertEquals("abc", Validators.requireMaxLength("abc", "Felt", maxLength = 3))
+        }
+
+        @Test
+        fun `requireMaxLength kaster BadRequestException naar for lang`() {
+            val ex = assertThrows(BadRequestException::class.java) {
+                Validators.requireMaxLength("abcd", "Felt", maxLength = 3)
+            }
+            assertTrue(ex.message!!.contains("Felt"))
+        }
     }
 
     @Nested
