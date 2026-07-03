@@ -28,6 +28,7 @@ class StatusPagesConfigTest {
                 get("/rate-limit") { throw RateLimitException("Vent litt") }
                 get("/rate-limit-retry") { throw RateLimitException("Vent litt", retryAfterSeconds = 30) }
                 get("/auth") { throw AuthenticationException("Ugyldig token") }
+                get("/github-api") { throw GitHubApiException("GitHub svarte 503", statusCode = 503) }
                 get("/illegal-arg") { throw IllegalArgumentException("Ugyldig argument") }
                 get("/unexpected") { throw RuntimeException("Noe gikk galt") }
             }
@@ -91,6 +92,14 @@ class StatusPagesConfigTest {
             val response = client.get("/auth")
             assertEquals(HttpStatusCode.Unauthorized, response.status)
             assertContains(response.bodyAsText(), "Autentisering feilet")
+        }
+
+        @Test
+        fun `GitHubApiException gir 502`() = testApplication {
+            setupApp()
+            val response = client.get("/github-api")
+            assertEquals(HttpStatusCode.BadGateway, response.status)
+            assertContains(response.bodyAsText(), "GitHub API er midlertidig utilgjengelig")
         }
 
         @Test
