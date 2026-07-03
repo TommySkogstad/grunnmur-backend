@@ -5,6 +5,83 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
+
+private const val CSRF_TOKEN_BYTES = 32
+private const val DEFAULT_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 dager
+
+/**
+ * Genererer et nytt tilfeldig CSRF-token (32 bytes, Base64url uten padding).
+ */
+fun generateCsrfToken(): String {
+    val bytes = ByteArray(CSRF_TOKEN_BYTES)
+    SecureRandom().nextBytes(bytes)
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+}
+
+/**
+ * Setter csrf_token-cookien paa responsen. Ikke httpOnly - maa vaere lesbar fra
+ * JavaScript slik at frontend kan sende tokenet tilbake som X-CSRF-Token-header.
+ *
+ * @param secure Sett `Secure`-flagget (kun sendt over HTTPS). Bruk true i produksjon.
+ * @param devMode Bruker SameSite=Lax i stedet for Strict (kreves for localhost-utvikling paa tvers av porter).
+ * @param maxAge Levetid i sekunder. Default 30 dager (dagens konsensus paa tvers av appene).
+ */
+fun ApplicationCall.setCsrfCookie(
+    token: String,
+    secure: Boolean,
+    devMode: Boolean = false,
+    maxAge: Int = DEFAULT_COOKIE_MAX_AGE
+) {
+    response.cookies.append(
+        Cookie(
+            name = "csrf_token",
+            value = token,
+            httpOnly = false,
+            secure = secure,
+            path = "/",
+            maxAge = maxAge,
+            extensions = mapOf("SameSite" to if (devMode) "Lax" else "Strict")
+        )
+    )
+}
+
+/**
+ * Setter auth_token-cookien (JWT) paa responsen. HttpOnly - utilgjengelig for JavaScript.
+ *
+ * @param secure Sett `Secure`-flagget (kun sendt over HTTPS). Bruk true i produksjon.
+ * @param devMode Bruker SameSite=Lax i stedet for Strict (kreves for localhost-utvikling paa tvers av porter).
+ * @param maxAge Levetid i sekunder. Default 30 dager. Bruk et kortere vindu for midlertidige
+ * tokens (f.eks. under en 2FA-mellomsteg).
+ */
+fun ApplicationCall.setAuthCookie(
+    jwt: String,
+    secure: Boolean,
+    devMode: Boolean = false,
+    maxAge: Int = DEFAULT_COOKIE_MAX_AGE
+) {
+    response.cookies.append(
+        Cookie(
+            name = "auth_token",
+            value = jwt,
+            httpOnly = true,
+            secure = secure,
+            path = "/",
+            maxAge = maxAge,
+            extensions = mapOf("SameSite" to if (devMode) "Lax" else "Strict")
+        )
+    )
+}
+
+/**
+ * Fjerner auth_token- og csrf_token-cookiene (logout). Setter maxAge=0 slik at
+ * nettleseren sletter dem umiddelbart.
+ */
+fun ApplicationCall.clearAuthCookies() {
+    response.cookies.append(Cookie(name = "auth_token", value = "", httpOnly = true, path = "/", maxAge = 0))
+    response.cookies.append(Cookie(name = "csrf_token", value = "", httpOnly = false, path = "/", maxAge = 0))
+}
 
 /**
  * CSRF-beskyttelse plugin for Ktor.

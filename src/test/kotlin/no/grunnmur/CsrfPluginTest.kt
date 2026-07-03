@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 
 class CsrfPluginTest {
 
@@ -198,6 +200,85 @@ class CsrfPluginTest {
                 header("X-My-CSRF", "token-123")
             }
             assertEquals(HttpStatusCode.OK, response.status)
+        }
+    }
+
+    @Nested
+    inner class CookieHelpers {
+
+        private fun ApplicationTestBuilder.setupCookieApp() {
+            application {
+                routing {
+                    get("/set-csrf") {
+                        call.setCsrfCookie(generateCsrfToken(), secure = true)
+                        call.respondText("OK")
+                    }
+                    get("/set-csrf-dev") {
+                        call.setCsrfCookie("dev-token", secure = false, devMode = true, maxAge = 3600)
+                        call.respondText("OK")
+                    }
+                    get("/set-auth") {
+                        call.setAuthCookie("jwt-abc", secure = true)
+                        call.respondText("OK")
+                    }
+                    get("/clear-auth") {
+                        call.clearAuthCookies()
+                        call.respondText("OK")
+                    }
+                }
+            }
+        }
+
+        @Test
+        fun `generateCsrfToken gir unike tokens av riktig lengde`() {
+            val a = generateCsrfToken()
+            val b = generateCsrfToken()
+            assertNotEquals(a, b)
+            // 32 bytes Base64url uten padding -> 43 tegn
+            assertEquals(43, a.length)
+        }
+
+        @Test
+        fun `setCsrfCookie bruker prod-defaults - Secure, SameSite=Strict, 30 dager`() = testApplication {
+            setupCookieApp()
+            val response = client.get("/set-csrf")
+            val cookie = response.headers.getAll(HttpHeaders.SetCookie)?.firstOrNull { it.startsWith("csrf_token=") }
+            assertNotNull(cookie)
+            assertContains(cookie, "Secure")
+            assertContains(cookie, "SameSite=Strict")
+            assertContains(cookie, "Max-Age=${30 * 24 * 60 * 60}")
+            assert(!cookie.contains("HttpOnly")) { "csrf_token skal vaere lesbar fra JavaScript" }
+        }
+
+        @Test
+        fun `setCsrfCookie i devMode bruker SameSite=Lax og tilpasset maxAge`() = testApplication {
+            setupCookieApp()
+            val response = client.get("/set-csrf-dev")
+            val cookie = response.headers.getAll(HttpHeaders.SetCookie)?.firstOrNull { it.startsWith("csrf_token=") }
+            assertNotNull(cookie)
+            assertContains(cookie, "SameSite=Lax")
+            assertContains(cookie, "Max-Age=3600")
+            assert(!cookie.contains("Secure"))
+        }
+
+        @Test
+        fun `setAuthCookie setter HttpOnly og Secure`() = testApplication {
+            setupCookieApp()
+            val response = client.get("/set-auth")
+            val cookie = response.headers.getAll(HttpHeaders.SetCookie)?.firstOrNull { it.startsWith("auth_token=") }
+            assertNotNull(cookie)
+            assertContains(cookie, "HttpOnly")
+            assertContains(cookie, "Secure")
+            assertContains(cookie, "SameSite=Strict")
+        }
+
+        @Test
+        fun `clearAuthCookies setter maxAge=0 for baade auth_token og csrf_token`() = testApplication {
+            setupCookieApp()
+            val response = client.get("/clear-auth")
+            val cookies = response.headers.getAll(HttpHeaders.SetCookie) ?: emptyList()
+            assertEquals(2, cookies.size)
+            assert(cookies.all { it.contains("Max-Age=0") })
         }
     }
 }
