@@ -310,7 +310,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 - `ForbiddenException(message)` -> 403
 - `RateLimitException(message, retryAfterSeconds?)` -> 429 (med `Retry-After`-header naar tilgjengelig)
 - `AuthenticationException(message)` -> 401
-- `GitHubApiException(message, statusCode?, cause?)` — kastes av GitHubAppAuth og GitHubIssueService ved 4xx/5xx-svar fra GitHub eller parsefeil (statusCode = null)
+- `GitHubApiException(message, statusCode?, cause?)` — kastes av GitHubAppAuth og GitHubIssueService ved 4xx/5xx-svar fra GitHub eller parsefeil (statusCode = null) -> 502
 
 ## Teknisk
 

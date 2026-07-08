@@ -209,7 +209,7 @@ install(StatusPages) {
 }
 ```
 
-Mapper: `BadRequestException` -> 400, `NotFoundException` -> 404, `ForbiddenException` -> 403, `RateLimitException` -> 429, `AuthenticationException` -> 401, `GitHubApiException` -> 500 (fra GitHub API-feil), `IllegalArgumentException` -> 400, `Throwable` -> 500 (skjuler detaljer i produksjon).
+Mapper: `BadRequestException` -> 400, `NotFoundException` -> 404, `ForbiddenException` -> 403, `RateLimitException` -> 429, `AuthenticationException` -> 401, `GitHubApiException` -> 502 (fra GitHub API-feil), `IllegalArgumentException` -> 400, `Throwable` -> 500 (skjuler detaljer i produksjon).
 
 ---
 
@@ -444,7 +444,7 @@ Typed exceptions som mappes til HTTP-statuskoder via StatusPages:
 | `ForbiddenException` | 403 Forbidden |
 | `RateLimitException` | 429 Too Many Requests |
 | `AuthenticationException` | 401 Unauthorized |
-| `GitHubApiException` | 500 Internal Server Error (fra GitHub API-feil) |
+| `GitHubApiException` | 502 Bad Gateway (fra GitHub API-feil) |
 
 #### TotpModels (`TotpModels.kt`)
 Serialiserbare dataklasser for TOTP-operasjoner:
