@@ -20,7 +20,29 @@ install(GrunnmurCsrf) {
 }
 ```
 
-Eksporterer: `GrunnmurCsrf` (plugin), `CsrfConfig` (class)
+**Cookie-hjelpefunksjoner:**
+- `generateCsrfToken(): String` — genererer 32-byte Base64url CSRF-token
+- `ApplicationCall.setCsrfCookie(token, secure, devMode = false, maxAge = 30 dager)` — setter csrf_token-cookie (ikke httpOnly)
+- `ApplicationCall.setAuthCookie(jwt, secure, devMode = false, maxAge = 30 dager)` — setter auth_token-cookie (httpOnly)
+- `ApplicationCall.clearAuthCookies()` — fjerner begge cookies (logout)
+
+Eksempel (login/Logout):
+```kotlin
+// Login: sett begge cookies
+post("/api/auth/login") {
+    val jwt = createJwtToken(user)
+    val csrfToken = generateCsrfToken()
+    call.setAuthCookie(jwt, secure = true)
+    call.setCsrfCookie(csrfToken, secure = true)
+}
+
+// Logout: fjern begge cookies
+post("/api/auth/logout") {
+    call.clearAuthCookies()
+}
+```
+
+Eksporterer: `GrunnmurCsrf` (plugin), `CsrfConfig` (class), `generateCsrfToken`, `setCsrfCookie`, `setAuthCookie`, `clearAuthCookies`
 
 #### KeyRateLimiter (`RateLimiter.kt`) — interface
 Felles interface for enkle nøkkel-baserte rate limitere. Implementeres av `RateLimiter` og `CompositeRateLimiter`. `AuthRateLimiter` holdes utenfor da den bruker to nøkler (IP + identifikator).
