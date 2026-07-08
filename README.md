@@ -22,6 +22,31 @@ install(GrunnmurCsrf) {
 }
 ```
 
+**Cookie-hjelpefunksjoner** for standardisert cookie-utstedelse:
+
+| Funksjon | Signatur | Beskrivelse |
+|----------|----------|-------------|
+| `generateCsrfToken` | `(): String` | Genererer 32-byte Base64url CSRF-token |
+| `setCsrfCookie` | `(ApplicationCall).(token: String, secure: Boolean, devMode: Boolean = false, maxAge: Int = 30 dager)` | Setter csrf_token-cookie (ikke httpOnly) |
+| `setAuthCookie` | `(ApplicationCall).(jwt: String, secure: Boolean, devMode: Boolean = false, maxAge: Int = 30 dager)` | Setter auth_token-cookie (httpOnly) |
+| `clearAuthCookies` | `(ApplicationCall).()` | Fjerner begge cookies (logout) |
+
+Eksempel (login/logout):
+```kotlin
+// Login
+post("/api/auth/login") {
+    val jwt = createJwtToken(user)
+    val csrfToken = generateCsrfToken()
+    call.setAuthCookie(jwt, secure = true)
+    call.setCsrfCookie(csrfToken, secure = true)
+}
+
+// Logout
+post("/api/auth/logout") {
+    call.clearAuthCookies()
+}
+```
+
 - **`GrunnmurCsrf`** — Ktor ApplicationPlugin (installeres med `install()`)
 - **`CsrfConfig`** — Konfigurasjon: `exemptPaths`, `authCookieName`, `csrfCookieName`, `csrfHeaderName`
 
