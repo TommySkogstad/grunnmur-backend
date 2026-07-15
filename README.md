@@ -526,3 +526,4 @@ services:
 - [styreportal](https://github.com/TommySkogstad/styreportal)
 - [smart-casual](https://github.com/TommySkogstad/smart-casual)
 - [maskemester](https://github.com/TommySkogstad/maskemester)
+- [vinforalle](https://github.com/TommySkogstad/vinforalle)
