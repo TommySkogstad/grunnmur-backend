@@ -512,10 +512,10 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.4.0, Ktor 3.5.1 (Server + Client CIO), Exposed 1.3.0, JVM 25
+- Kotlin 2.4.0, Ktor 3.5.1 (Server + Client CIO), Exposed 1.3.1, JVM 25
 - kotlinx-serialization-json 1.11.0, Jakarta Mail 2.1.5, Flyway 11.19.1
 - kotlin-onetimepassword 2.4.1, SLF4J 2.0.18
-- Testcontainers 1.21.4, PostgreSQL JDBC 42.7.11 (integrasjonstester)
+- Testcontainers 1.21.4, PostgreSQL JDBC 42.7.13 (integrasjonstester)
 - Alle avhengigheter er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MA holdes i sync med appene (binaer inkompatibilitet)
 
