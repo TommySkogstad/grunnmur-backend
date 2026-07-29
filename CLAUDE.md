@@ -394,10 +394,17 @@ To-nivaa CI-pipeline (kun backend, ingen frontend):
 - `compileKotlin` + `compileTestKotlin` (verifiserer at koden kompilerer)
 - Kjoretid: ~1 minutt
 
-**Fullstendig testsuite** (`test-full.yml`) — kjores ved PR mot `main` og manuelt (`workflow_dispatch`):
+**Fullstendig testsuite** (`test-full.yml`) — kjores ved push til `main` og `auto/**`, PR mot `main`, og manuelt (`workflow_dispatch`):
 - Alle JUnit 5-tester
 - Dependabot-PRer utloeser kun hurtigsjekk, ikke full suite
 - Kjoretid: ~2-3 minutter
+- `paths-ignore` hopper over testene for doc-only endringer (*.md, docs/**, scripts/**, docker-compose*, .env*, LICENSE, .gitignore)
+
+**Doc-only passthrough** (`test-full-skip.yml`) — sikrer at doc-only PRs kan auto-merge:
+- Trigger: PR mot `main` med BARE endringer i de ignorerte stiene
+- Produserer en check med samme navn som `test-full.yml` (`Backend-tester`)
+- Branch protection er tilfreds, PR kan auto-merge uten aa gjore tester
+- Ref: misc-scripts#342 (løsing for doc-PR-blokkering)
 
 **Nattlig** — ci-fix-daily (kl 04:30) kjoerer full testsuite og fikser eventuelle feil.
 
