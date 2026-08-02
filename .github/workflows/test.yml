@@ -2,7 +2,7 @@ name: Hurtigsjekk
 
 on:
   push:
-    branches: [main, 'auto/**']
+    branches: [main]
     paths-ignore:
       - '**.md'
       - 'docs/**'
