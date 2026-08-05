@@ -390,11 +390,12 @@ COPY --from=grunnmur . /app/grunnmur
 
 To-nivaa CI-pipeline (kun backend, ingen frontend):
 
-**Hurtigsjekk** (`test.yml`) — kjores ved push til `main` og `auto/**`:
+**Hurtigsjekk** (`test.yml`) — kjores ved push til `main` og pull_request mot `main`:
 - `compileKotlin` + `compileTestKotlin` (verifiserer at koden kompilerer)
 - Kjoretid: ~1 minutt
+- `paths-ignore` hopper over sjekk for doc-only endringer (*.md, docs/**, scripts/**, docker-compose*, .env*, LICENSE, .gitignore)
 
-**Fullstendig testsuite** (`test-full.yml`) — kjores ved push til `main` og `auto/**`, PR mot `main`, og manuelt (`workflow_dispatch`):
+**Fullstendig testsuite** (`test-full.yml`) — kjores ved push til `main`, PR mot `main` (types: opened/synchronize/reopened/labeled), og manuelt (`workflow_dispatch`):
 - Alle JUnit 5-tester
 - Dependabot-PRer utloeser kun hurtigsjekk, ikke full suite
 - Kjoretid: ~2-3 minutter
