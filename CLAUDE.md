@@ -337,8 +337,8 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 ## Teknisk
 
 - **Kotlin**: 2.4.10
-- **Ktor**: 3.5.1 (compileOnly — Server + Client CIO)
-- **Exposed**: 1.3.1 (compileOnly)
+- **Ktor**: 3.5.2 (compileOnly — Server + Client CIO)
+- **Exposed**: 1.4.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.11.0 (compileOnly)
 - **Jakarta Mail**: 2.1.5 (compileOnly)
 - **Flyway**: 11.19.1 (compileOnly — pinnet pga bug i 11.20.3/12.x)
