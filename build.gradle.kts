@@ -83,7 +83,7 @@ dependencies {
     testImplementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
 
     // H2 (test — in-memory database for Flyway- og Exposed-tester)
-    testImplementation("com.h2database:h2:2.4.240")
+    testImplementation("com.h2database:h2:2.5.250")
 
     // Testcontainers (integrasjonstester mot ekte PostgreSQL 16)
     testImplementation("org.testcontainers:postgresql:1.21.4")
