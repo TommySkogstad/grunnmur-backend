@@ -11,7 +11,7 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "3.5.2"
+val ktorVersion = "3.6.0"
 val exposedVersion = "1.5.0"
 
 dependencies {
