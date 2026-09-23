@@ -1,7 +1,7 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Brukes av biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle.
+Brukes av biologportal, 6810, styreportal, maskemester og vinforalle.
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -443,7 +443,7 @@ Apper sjekker ut grunnmur med `grunnmur-access` GitHub App (App ID `GRUNNMUR_APP
 
 ## Versjonsstrategi
 
-`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (biologportal, 6810, styreportal, smart-casual, maskemester og vinforalle) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
+`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (biologportal, 6810, styreportal, maskemester og vinforalle) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
 
 `publishing`-blokken i `build.gradle.kts` eksisterer for fremtidig publisering til GitHub Packages, men er ikke i rutinemessig bruk. Versjonen bumpes kun manuelt ved breaking changes — ingen automatisk bump, ingen SNAPSHOT-konvensjon, ingen CHANGELOG.
 
@@ -455,7 +455,7 @@ Inntil da holdes versjonen fast. Dette er en bevisst avgjoerelse, ikke en glemt 
 
 ## Viktig
 
-- Ved Dependabot-oppgraderinger: oppgrader grunnmur FOERST, deretter alle 6 apper til samme versjoner
+- Ved Dependabot-oppgraderinger: oppgrader grunnmur FOERST, deretter alle 5 apper til samme versjoner
 - Kotlin metadata 2.4 kan ikke leses av 2.1-kompilator (NoClassDefFoundError)
 - Exposed-versjoner maa vaere identiske mellom grunnmur og apper
 - **Kryssrepo-avhengigheter**: Grunnmur er et delt bibliotek. Naar ny funksjonalitet legges til, opprett GitHub issue paa grunnmur FOERST, deretter issues paa alle apper som skal bruke den nye modulen med `Blokkert av: TommySkogstad/grunnmur#nummer` i issue-bodyen. Issue-triage haandterer avhengighetsrekkefoeolgen automatisk — blokkerte issues venter til grunnmur-issuen er lukket.
