@@ -525,4 +525,3 @@ services:
 - [6810](https://github.com/TommySkogstad/6810)
 - [styreportal](https://github.com/TommySkogstad/styreportal)
 - [maskemester](https://github.com/TommySkogstad/maskemester)
-- [vinforalle](https://github.com/TommySkogstad/vinforalle)
