@@ -336,7 +336,7 @@ Config: `Config(uploadDir, baseUrl, repo = "", maxFileSize = 2MB, maxImagesPerIs
 
 ## Teknisk
 
-- **Kotlin**: 2.4.20
+- **Kotlin**: 2.4.21
 - **Ktor**: 3.6.0 (compileOnly — Server + Client CIO)
 - **Exposed**: 1.5.0 (compileOnly)
 - **kotlinx-serialization-json**: 1.11.0 (compileOnly)
