@@ -12,7 +12,7 @@ repositories {
 }
 
 val ktorVersion = "3.6.0"
-val exposedVersion = "1.5.0"
+val exposedVersion = "1.5.1"
 
 dependencies {
     // Ktor server (compileOnly — apper har sin egen versjon)
