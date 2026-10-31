@@ -1,7 +1,7 @@
 # grunnmur
 
 Felles Kotlin-bibliotek for alle Ktor-apper i portefoljen.
-Brukes av biologportal, 6810, styreportal og maskemester.
+Brukes av biologportal, 6810 og styreportal.
 
 ## Komplett modulreferanse (23 filer, 18 moduler)
 
@@ -443,7 +443,7 @@ Apper sjekker ut grunnmur med `grunnmur-access` GitHub App (App ID `GRUNNMUR_APP
 
 ## Versjonsstrategi
 
-`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (biologportal, 6810, styreportal og maskemester) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
+`build.gradle.kts` har `version = "1.0.0"` hardkodet med hensikt. Appene (biologportal, 6810 og styreportal) konsumerer grunnmur via Gradle composite build (`includeBuild`) — ikke via Maven-koordinater. Sporbarhet skjer via git commit-hash, ikke versjonsnummer.
 
 `publishing`-blokken i `build.gradle.kts` eksisterer for fremtidig publisering til GitHub Packages, men er ikke i rutinemessig bruk. Versjonen bumpes kun manuelt ved breaking changes — ingen automatisk bump, ingen SNAPSHOT-konvensjon, ingen CHANGELOG.
 
