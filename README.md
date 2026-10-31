@@ -8,6 +8,54 @@
 
 ---
 
+## Slik fungerer det
+
+Appene henter grunnmur som kildekode (Gradle `includeBuild`) med alle avhengigheter som `compileOnly`, så hver app bruker sine egne Ktor-, Exposed- og Flyway-versjoner. Figuren viser modulene etter hvor i appen de brukes, og pilene viser hvilke moduler som bruker hverandre. Alle unntak ender i `grunnmurExceptionHandlers`, som gjør dem om til HTTP-svar med feilmelding på norsk. Hvordan innloggingen settes sammen av OTP, JWT-cookie og CSRF, står i [docs/auth-flyt.md](docs/auth-flyt.md).
+
+```mermaid
+%% Avledet fra: build.gradle.kts, src/main/kotlin/no/grunnmur/*.kt, import no.grunnmur.* i appenes backend/src/main (2026-10-31)
+flowchart TB
+    bp[biologportal] & hwa[6810] & sp[styreportal] --> lib{{"grunnmur<br/>includeBuild, compileOnly"}}
+
+    lib --> req & login & db & svc
+
+    subgraph req [Hver forespørsel]
+        csrf[GrunnmurCsrf]
+        ip[getClientIp] -- nøkkel --> rl[RateLimiter<br/>og presets]
+        rl -- isAllowed --> route[RouteUtils]
+        authx[AuthExtensions]
+        val[Validators og<br/>InputSanitizer]
+    end
+
+    subgraph login [Innlogging]
+        otp[OtpUtils]
+        cookies[Cookie-hjelpere]
+        totp[TotpService] --> enc[EncryptionUtils]
+    end
+
+    subgraph db [Database]
+        flyway[FlywayMigration]
+        audit[AuditLogService<br/>og AuditLogs] --> page[PaginatedResponse]
+    end
+
+    subgraph svc [Tjenester]
+        smtp[SmtpClient]
+        img[ImageUploadService]
+        ghroutes[gitHubIssueRoutes] --> ghsvc[GitHubIssueService] --> ghauth[GitHubAppAuth]
+    end
+
+    subgraph felles [Felles]
+        time[TimeUtils<br/>Europe/Oslo]
+        exc[Exceptions] --> status[grunnmurExceptionHandlers<br/>gir HTTP-svar]
+    end
+
+    otp & audit --> time
+    route -- "400, 429" --> exc
+    authx -- 401 --> exc
+    val -- 400 --> exc
+    ghauth -- 502 --> exc
+```
+
 ## Moduloversikt
 
 ### Auth og sikkerhet
@@ -512,10 +560,10 @@ services:
 
 ## Versjoner
 
-- Kotlin 2.4.21, Ktor 3.6.0 (Server + Client CIO), Exposed 1.5.1, JVM 25
-- kotlinx-serialization-json 1.11.0, Jakarta Mail 2.1.5, Flyway 11.19.1
-- kotlin-onetimepassword 2.4.1, SLF4J 2.0.18
-- Testcontainers 1.21.4, PostgreSQL JDBC 42.7.13 (integrasjonstester)
+- Kotlin 2.4.21, Ktor 3.6.0 (Server + Client CIO), Exposed 1.6.0, JVM 25
+- kotlinx-serialization-json 1.12.0, Jakarta Mail 2.1.5, Flyway 11.19.1
+- kotlin-onetimepassword 2.4.1, SLF4J 2.0.20
+- Testcontainers 1.21.4, PostgreSQL JDBC 42.7.14 (integrasjonstester)
 - Alle avhengigheter er `compileOnly` — apper bruker sine egne versjoner
 - Versjoner MA holdes i sync med appene (binaer inkompatibilitet)
 
@@ -524,4 +572,3 @@ services:
 - [biologportal](https://github.com/TommySkogstad/biologportal)
 - [6810](https://github.com/TommySkogstad/6810)
 - [styreportal](https://github.com/TommySkogstad/styreportal)
-- [maskemester](https://github.com/TommySkogstad/maskemester)
