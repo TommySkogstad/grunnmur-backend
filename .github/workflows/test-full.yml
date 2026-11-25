@@ -35,7 +35,6 @@ permissions:
 jobs:
   backend:
     name: Backend-tester
-    if: github.actor != 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'ci:run')
     runs-on: [self-hosted, linux, nuc]
     timeout-minutes: 10
     steps:
